@@ -98,7 +98,7 @@ html, body {
   align-items: center; justify-content: center;
   padding: 24px;
   padding-top: calc(24px + var(--safe-t));
-  padding-bottom: calc(24px + var(--safe-b));
+  padding-bottom: calc(100px + var(--safe-b));
   overflow-y: auto;
 }
 
@@ -1304,7 +1304,7 @@ html, body {
   max-height: 92vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(16px + var(--safe-b));
+  padding-bottom: calc(100px + var(--safe-b));
   animation: sheetUp .28s cubic-bezier(.34, 1.56, .64, 1);
 }
 
@@ -2161,7 +2161,7 @@ html, body {
   max-height: 94vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(20px + var(--safe-b));
+  padding-bottom: calc(100px + var(--safe-b));
   transform: translateY(102%);
   transition: transform .3s cubic-bezier(.25,.46,.45,.94);
 }
@@ -2484,7 +2484,7 @@ html, body {
   border-top: 1px solid var(--borderhi);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   z-index: 200;
-  padding-bottom: calc(20px + var(--safe-b));
+  padding-bottom: calc(100px + var(--safe-b));
   transform: translateY(102%);
   transition: transform .28s cubic-bezier(.25,.46,.45,.94);
   max-height: 88vh;
@@ -4523,6 +4523,9 @@ html, body {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+#mr { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+#mr:not(:empty) { pointer-events: auto; }
 </style>
 
   <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiS3Jvbm9zIiwic2hvcnRfbmFtZSI6Iktyb25vcyIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTBmIiwidGhlbWVfY29sb3IiOiIjMGEwYTBmIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPVwiaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmdcIiB2aWV3Qm94PVwiMCAwIDEwMCAxMDBcIj48dGV4dCB5PVwiODBcIiBmb250LXNpemU9XCI4MFwiPks8L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
@@ -6575,10 +6578,11 @@ function opsSummary() {
 
 // ── FORMATTERS ───────────────────────────────────────────
 function brl(n) {
+  if (n == null || isNaN(n)) return 'R$\u00a0—';
   return 'R$\u00a0' + Math.abs(n).toFixed(2)
     .replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
-function pct(n) { return n.toFixed(1) + '%'; }
+function pct(n) { return (n == null || isNaN(n)) ? '—' : Number(n).toFixed(1) + '%'; }
 function colorForStatus(st) {
   return st === 'red' ? 'var(--ops-red)' : st === 'orange' ? 'var(--ops-orange)' : 'var(--ops-green)';
 }
@@ -6723,7 +6727,7 @@ function renderOps() {
       const isAging  = ageDays !== null && ageDays > 45 && sku.stock_full > 0;
       const storageCost = isAging ? opsStorageCostAccrued(sku) : 0;
 
-      h += `<div class="ops-card st-${st==='zombie'?'zombie':st}" onclick="opsOpenDrawer('${sku.sku_id}')">
+      h += `<div class="ops-card st-${st==='zombie'?'zombie':st}" onclick="opsOpenDrawer('${sku.sku_id}')" oncontextmenu="event.preventDefault();opsOpenEdit('${sku.sku_id}')">
         <div class="ops-card-inner">
           <div class="ops-card-top">
             <div class="ops-card-meta">
@@ -6929,7 +6933,7 @@ function opsRenderDrawer(sku, price) {
             onclick="opsSavePrice('${sku.sku_id}')">Salvar preco</button>
         </div>
         <button class="btnp" style="width:100%;background:var(--focus);border-color:var(--focus)"
-          onclick="opsCloseDrawer();opsOpenEdit('${sku.sku_id}')">&#9998; Editar SKU completo</button>
+          onclick="opsOpenEdit('${sku.sku_id}')">&#9998; Editar SKU completo</button>
         <button class="btnc" style="width:100%;margin-top:4px"
           onclick="opsCloseDrawer();_logModule='log';renderLog()">&#128230; Ver envios deste SKU</button>
       </div>
@@ -6963,7 +6967,12 @@ function opsCloseDrawer() {
 
 // ── ADD / EDIT SKU FORM ──────────────────────────────────
 function opsOpenAdd() { opsEditSKU = null; opsOpenForm(null); }
-function opsOpenEdit(skuId) { opsEditSKU = skuId; opsOpenForm(opsSKUs.find(s => s.sku_id === skuId)); }
+function opsOpenEdit(skuId) {
+  opsEditSKU = skuId;
+  var sku = opsSKUs.find(function(s) { return s.sku_id === skuId; });
+  if (!sku) { qopShowToast('SKU nao encontrado'); return; }
+  opsOpenForm(sku);
+}
 
 function opsOpenForm(ex) {
   const mr = document.getElementById('mr');
