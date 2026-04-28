@@ -5043,7 +5043,20 @@ function sv(v){
   var finFab=document.getElementById('fin2-fab');
   if(finFab) finFab.classList.toggle('show', v==='fin');
   // Module renders
-  if(v==='ops') renderOps();
+  if(v==='ops') {
+    // Ensure ops-body is visible (might be hidden if last module was log)
+    var obsBody = document.getElementById('ops-body');
+    if (obsBody) obsBody.style.display = '';
+    _logModule = _logModule || 'ops';
+    if (_logModule === 'log') {
+      var logBody = document.getElementById('log-body');
+      if (logBody) logBody.classList.add('show');
+      if (obsBody) obsBody.style.display = 'none';
+      renderLog();
+    } else {
+      renderOps();
+    }
+  }
   if(v==='fin') renderFin();
   if(v==='ml')  renderML();
   if(v!=='ops' && typeof _logTimerIv!=='undefined' && _logTimerIv) { clearInterval(_logTimerIv); _logTimerIv=null; }
@@ -6709,7 +6722,7 @@ function renderOps() {
       const days  = opsDays(sku);
       const dShow = isFinite(days) ? Math.floor(days) : '&#8734;';
       const MAX   = 60;
-      const pct   = isFinite(days) ? Math.min(days / MAX * 100, 100) : 100;
+      const pctBar = isFinite(days) ? Math.min(days / MAX * 100, 100) : 100;
       const pinPct = Math.min((sku.lead_time_supplier / MAX) * 100, 98);
       const ord   = opsOrderDate(sku);
       const m     = opsMargin(sku, sku.sell_price);
@@ -6750,7 +6763,7 @@ function renderOps() {
               </div>
             </div>
             <div class="ops-bar-track">
-              <div class="ops-bar-fill ${barClass}" style="width:${pct}%"></div>
+              <div class="ops-bar-fill ${barClass}" style="width:${pctBar}%"></div>
               <div class="ops-bar-pin" style="left:${pinPct}%" title="Lead time: ${sku.lead_time_supplier}d"></div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:2px">
@@ -7444,12 +7457,12 @@ function switchOpsModule(mod) {
   _logModule = mod;
   document.getElementById('mod-tab-ops')?.classList.toggle('active', mod === 'ops');
   document.getElementById('mod-tab-log')?.classList.toggle('active', mod === 'log');
-  const obsBody = document.getElementById('ops-body');
-  const logBody = document.getElementById('log-body');
+  var obsBody = document.getElementById('ops-body');
+  var logBody = document.getElementById('log-body');
   if (obsBody) obsBody.style.display = mod === 'ops' ? '' : 'none';
   if (logBody) logBody.classList.toggle('show', mod === 'log');
   if (mod === 'log') { _logTab = _logTab || 'pipe'; renderLog(); }
-  else if (_logTimerIv) { clearInterval(_logTimerIv); _logTimerIv = null; }
+  else { if (_logTimerIv) { clearInterval(_logTimerIv); _logTimerIv = null; } renderOps(); }
 }
 
 // ── MAIN RENDER ───────────────────────────────────────────────────
