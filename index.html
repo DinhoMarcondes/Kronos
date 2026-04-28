@@ -6975,121 +6975,90 @@ function opsOpenEdit(skuId) {
 }
 
 function opsOpenForm(ex) {
-  const mr = document.getElementById('mr');
-  if (!mr) return;
+  var mr = document.getElementById('mr');
+  if (!mr) { console.error('mr not found'); return; }
 
-  mr.innerHTML = `<div class="overlay" onclick="cm(event)"><div class="sheet" onclick="event.stopPropagation()">
-    <div class="sh-drag"></div>
-    <div class="sh-title">${ex ? 'Editar SKU' : 'Novo SKU'}</div>
-    <div class="sh-body" style="gap:10px">
+  var isEdit = !!ex;
+  var skuId = ex ? ex.sku_id : '';
 
-      <div class="ops-form-section">Identificacao</div>
-      <div><div class="fl">Nome do produto</div>
-        <input class="fi" id="of-name" placeholder="Ex: Mouse Pad Speed XL" value="${ex?.name||''}">
-      </div>
-      <div class="ops-grid2">
-        <div><div class="fl">SKU ID</div>
-          <input class="fi" id="of-id" placeholder="ML-001" value="${ex?.sku_id||''}" ${ex?'readonly style="opacity:.5;cursor:not-allowed"':''}>
-        </div>
-        <div><div class="fl">Plataforma</div>
-          <select class="fi" id="of-plat" style="cursor:pointer;appearance:auto">
-            <option value="ML"   ${ex?.platform==='ML'  ?'selected':''}>Meli Full</option>
-            <option value="AMZ"  ${ex?.platform==='AMZ' ?'selected':''}>Amazon FBA</option>
-            <option value="BOTH" ${ex?.platform==='BOTH'?'selected':''}>Ambos</option>
-          </select>
-        </div>
-      </div>
+  // Build form HTML with empty inputs (values set via JS to avoid template injection)
+  mr.innerHTML = '<div class="overlay" onclick="cm(event)"><div class="sheet" onclick="event.stopPropagation()">'
+    + '<div class="sh-drag"></div>'
+    + '<div class="sh-title">' + (isEdit ? 'Editar SKU' : 'Novo SKU') + '</div>'
+    + '<div class="sh-body" style="gap:10px">'
+    + '<div class="ops-form-section">Identificacao</div>'
+    + '<div><div class="fl">Nome do produto</div>'
+    + '<input class="fi" id="of-name" placeholder="Ex: Mouse Pad Speed XL"></div>'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">SKU ID</div>'
+    + '<input class="fi" id="of-id" placeholder="ML-001"' + (isEdit ? ' readonly style="opacity:.5;cursor:not-allowed"' : '') + '></div>'
+    + '<div><div class="fl">Plataforma</div>'
+    + '<select class="fi" id="of-plat" style="cursor:pointer;appearance:auto">'
+    + '<option value="ML">Meli Full</option>'
+    + '<option value="AMZ">Amazon FBA</option>'
+    + '<option value="BOTH">Ambos</option>'
+    + '</select></div></div>'
+    + '<div class="ops-form-section">Estoque &amp; Giro</div>'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">Un. no Full/FBA</div><input class="fi" id="of-stock" type="number" min="0" step="1" placeholder="100"></div>'
+    + '<div><div class="fl">Vendas/dia (media)</div><div class="ops-input-wrap with-suffix"><input class="fi" id="of-sales" type="number" min="0" step="0.1" placeholder="3.5"><span class="ops-input-suffix">/d</span></div></div>'
+    + '</div>'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">Lead time fornecedor</div><div class="ops-input-wrap with-suffix"><input class="fi" id="of-lead" type="number" min="1" step="1" placeholder="15"><span class="ops-input-suffix">dias</span></div></div>'
+    + '<div><div class="fl">Entrada no Full (data)</div><input class="fi" id="of-entry" type="date" style="color:var(--text);font-family:var(--font-mono);font-size:13px"></div>'
+    + '</div>'
+    + '<div class="ops-form-section">Preco &amp; Custos</div>'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">Preco de venda</div><div class="ops-input-wrap"><span class="ops-input-prefix">R$</span><input class="fi" id="of-price" type="number" min="0" step="0.01" placeholder="79.90" oninput="opsFormPreview()"></div></div>'
+    + '<div><div class="fl">Custo de aquisicao</div><div class="ops-input-wrap"><span class="ops-input-prefix">R$</span><input class="fi" id="of-acq" type="number" min="0" step="0.01" placeholder="25.00" oninput="opsFormPreview()"></div></div>'
+    + '</div>'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">Imposto (%)</div><div class="ops-input-wrap with-suffix"><input class="fi" id="of-tax" type="number" min="0" step="0.1" placeholder="6.0" oninput="opsFormPreview()"><span class="ops-input-suffix">%</span></div></div>'
+    + '<div><div class="fl">Comissao marketplace</div><div class="ops-input-wrap with-suffix"><input class="fi" id="of-fee" type="number" min="0" step="0.1" placeholder="14.0" oninput="opsFormPreview()"><span class="ops-input-suffix">%</span></div></div>'
+    + '</div>'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">Frete fixo</div><div class="ops-input-wrap"><span class="ops-input-prefix">R$</span><input class="fi" id="of-ship" type="number" min="0" step="0.01" placeholder="0.00" oninput="opsFormPreview()"></div></div>'
+    + '<div><div class="fl">Armazenamento/un</div><div class="ops-input-wrap"><span class="ops-input-prefix">R$</span><input class="fi" id="of-stor" type="number" min="0" step="0.01" placeholder="0.10" oninput="opsFormPreview()"></div></div>'
+    + '</div>'
+    + '<div class="ops-live-preview" id="ops-form-preview"><div class="fl" style="margin-bottom:6px">Preview de margem</div><div class="ops-live-row" id="ops-preview-vals"></div></div>'
+    + '</div>'
+    + '<div class="sh-footer">'
+    + '<button class="btnc" onclick="cm()">Cancelar</button>'
+    + '<button class="btnp" style="background:var(--ops-gold);color:#000" onclick="opsSaveSKU()">' + (isEdit ? 'Salvar' : 'Adicionar SKU') + '</button>'
+    + '</div>'
+    + (isEdit ? '<div style="padding:0 20px 4px"><button id="of-del-btn" style="width:100%;padding:11px;border-radius:var(--radius);border:1px solid rgba(248,113,113,.22);background:rgba(248,113,113,.06);color:#f87171;font-family:var(--font-sans);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">Excluir SKU</button></div>' : '')
+    + '</div></div>';
 
-      <div class="ops-form-section">Estoque & Giro</div>
-      <div class="ops-grid2">
-        <div><div class="fl">Un. no Full/FBA</div>
-          <input class="fi" id="of-stock" type="number" min="0" step="1" placeholder="100" value="${ex?.stock_full??''}">
-        </div>
-        <div><div class="fl">Vendas/dia (media)</div>
-          <div class="ops-input-wrap with-suffix">
-            <input class="fi" id="of-sales" type="number" min="0" step="0.1" placeholder="3.5" value="${ex?.avg_sales_day??''}">
-            <span class="ops-input-suffix">/d</span>
-          </div>
-        </div>
-      </div>
-      <div class="ops-grid2">
-        <div><div class="fl">Lead time fornecedor</div>
-          <div class="ops-input-wrap with-suffix">
-            <input class="fi" id="of-lead" type="number" min="1" step="1" placeholder="15" value="${ex?.lead_time_supplier??''}">
-            <span class="ops-input-suffix">dias</span>
-          </div>
-        </div>
-        <div><div class="fl">Entrada no Full (data)</div>
-          <input class="fi" id="of-entry" type="date" value="${ex?.entry_date||todayS()}"
-            style="color:var(--text);font-family:var(--font-mono);font-size:13px">
-        </div>
-      </div>
-
-      <div class="ops-form-section">Preco & Custos</div>
-      <div class="ops-grid2">
-        <div><div class="fl">Preco de venda</div>
-          <div class="ops-input-wrap"><span class="ops-input-prefix">R$</span>
-            <input class="fi" id="of-price" type="number" min="0" step="0.01" placeholder="79.90"
-              value="${ex?.sell_price??''}" oninput="opsFormPreview()">
-          </div>
-        </div>
-        <div><div class="fl">Custo de aquisicao</div>
-          <div class="ops-input-wrap"><span class="ops-input-prefix">R$</span>
-            <input class="fi" id="of-acq" type="number" min="0" step="0.01" placeholder="25.00"
-              value="${ex?.costs?.acquisition??''}" oninput="opsFormPreview()">
-          </div>
-        </div>
-      </div>
-      <div class="ops-grid2">
-        <div><div class="fl">Imposto (%)</div>
-          <div class="ops-input-wrap with-suffix">
-            <input class="fi" id="of-tax" type="number" min="0" step="0.1" placeholder="6.0"
-              value="${ex?.costs?.tax_percent??''}" oninput="opsFormPreview()">
-            <span class="ops-input-suffix">%</span>
-          </div>
-        </div>
-        <div><div class="fl">Comissao marketplace</div>
-          <div class="ops-input-wrap with-suffix">
-            <input class="fi" id="of-fee" type="number" min="0" step="0.1" placeholder="14.0"
-              value="${ex?.costs?.marketplace_fee??''}" oninput="opsFormPreview()">
-            <span class="ops-input-suffix">%</span>
-          </div>
-        </div>
-      </div>
-      <div class="ops-grid2">
-        <div><div class="fl">Frete fixo</div>
-          <div class="ops-input-wrap"><span class="ops-input-prefix">R$</span>
-            <input class="fi" id="of-ship" type="number" min="0" step="0.01" placeholder="0.00"
-              value="${ex?.costs?.shipping_fixed??0}" oninput="opsFormPreview()">
-          </div>
-        </div>
-        <div><div class="fl">Armazenamento/un</div>
-          <div class="ops-input-wrap"><span class="ops-input-prefix">R$</span>
-            <input class="fi" id="of-stor" type="number" min="0" step="0.01" placeholder="0.10"
-              value="${ex?.costs?.storage??0}" oninput="opsFormPreview()">
-          </div>
-        </div>
-      </div>
-
-      <!-- Live preview -->
-      <div class="ops-live-preview" id="ops-form-preview">
-        <div class="fl" style="margin-bottom:6px">Preview de margem</div>
-        <div class="ops-live-row" id="ops-preview-vals"></div>
-      </div>
-
-    </div>
-    <div class="sh-footer">
-      <button class="btnc" onclick="cm()">Cancelar</button>
-      <button class="btnp" style="background:var(--ops-gold);color:#000"
-        onclick="opsSaveSKU()"> ${ex ? 'Salvar' : 'Adicionar SKU'}</button>
-    </div>
-    ${ex ? `<div style="padding:0 20px 4px">
-      <button onclick="opsDeleteSKU('${ex.sku_id}')"
-        style="width:100%;padding:11px;border-radius:var(--radius);border:1px solid rgba(248,113,113,.22);
-        background:rgba(248,113,113,.06);color:#f87171;font-family:var(--font-sans);font-size:13px;
-        font-weight:600;cursor:pointer;margin-top:4px">Excluir SKU</button>
-    </div>` : ''}
-  </div></div>`;
+  // Set values safely via DOM (avoids template injection with special chars)
+  if (ex) {
+    var set = function(id, val) {
+      var el = document.getElementById(id);
+      if (el && val !== undefined && val !== null) el.value = val;
+    };
+    set('of-name',  ex.name || '');
+    set('of-id',    ex.sku_id || '');
+    set('of-stock', ex.stock_full != null ? ex.stock_full : '');
+    set('of-sales', ex.avg_sales_day != null ? ex.avg_sales_day : '');
+    set('of-lead',  ex.lead_time_supplier != null ? ex.lead_time_supplier : '');
+    set('of-entry', ex.entry_date || todayS());
+    set('of-price', ex.sell_price != null ? ex.sell_price : '');
+    if (ex.costs) {
+      set('of-acq',  ex.costs.acquisition != null ? ex.costs.acquisition : '');
+      set('of-tax',  ex.costs.tax_percent != null ? ex.costs.tax_percent : '');
+      set('of-fee',  ex.costs.marketplace_fee != null ? ex.costs.marketplace_fee : '');
+      set('of-ship', ex.costs.shipping_fixed != null ? ex.costs.shipping_fixed : 0);
+      set('of-stor', ex.costs.storage != null ? ex.costs.storage : 0);
+    }
+    // Platform select
+    var platEl = document.getElementById('of-plat');
+    if (platEl && ex.platform) platEl.value = ex.platform;
+    // Delete button
+    var delBtn = document.getElementById('of-del-btn');
+    if (delBtn) delBtn.onclick = function() { opsDeleteSKU(ex.sku_id); };
+  } else {
+    var entryEl = document.getElementById('of-entry');
+    if (entryEl) entryEl.value = todayS();
+  }
 
   setTimeout(opsFormPreview, 80);
 }
