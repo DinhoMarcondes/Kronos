@@ -9,6 +9,7 @@
 <title>Kronos</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
 <style>
@@ -1532,6 +1533,27 @@ html, body {
   color: var(--text);
 }
 
+    <div style=\"font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:4px 0 8px\">Conta</div>
+    <div style=\"background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px\">
+      <div style=\"font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0\">&#128100;</div>
+      <div style=\"flex:1\"><div style=\"font-weight:600;font-size:13px\">${_currentUser ? (_currentUser.displayName || _currentUser.email) : 'Conta'}</div><div style=\"font-size:11px;color:var(--muted);margin-top:2px\">${_currentUser ? _currentUser.email : ''}</div></div>
+      <button onclick=\"authSignOut()\" style=\"padding:7px 12px;border-radius:6px;border:1px solid rgba(248,113,113,.25);background:transparent;color:var(--ops-red);font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer\">Sair</button>
+    </div>
+    <div style=\"font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:16px 0 8px\">Workspace</div>
+    <div style=\"background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer\" onclick=\"kronosShareWorkspace()\">
+      <div style=\"font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0\">&#128279;</div>
+      <div><div style=\"font-weight:600;font-size:13px\">Compartilhar Workspace</div><div style=\"font-size:11px;color:var(--muted);margin-top:2px\">Copiar ID para outro usuario acessar</div></div>
+    </div>
+    <div style=\"background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer\" onclick=\"kronosJoinWorkspace()\">
+      <div style=\"font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0\">&#128682;</div>
+      <div><div style=\"font-weight:600;font-size:13px\">Acessar Workspace</div><div style=\"font-size:11px;color:var(--muted);margin-top:2px\">Entrar no workspace de outro usuario</div></div>
+    </div>
+    <div style=\"font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:16px 0 8px\">Notificacoes</div>
+    <div style=\"background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer\" onclick=\"notifRequestPermission()\">
+      <div style=\"font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0\">&#128276;</div>
+      <div><div style=\"font-weight:600;font-size:13px\">Notificacoes de vencimento</div><div style=\"font-size:11px;color:var(--muted);margin-top:2px\">Alertas 48h antes do vencimento</div></div>
+    </div>
+    <div style=\"font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:16px 0 8px\">Dados</div>
 .da:active { transform: scale(.96); }
 .da-ic { font-size: 18px; }
 
@@ -4526,11 +4548,156 @@ html, body {
 
 #mr { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
 #mr:not(:empty) { pointer-events: auto; }
+
+/* ── Auth Screen ──────────────────────────────────────────── */
+#auth-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+}
+.auth-card {
+  width: 100%; max-width: 360px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+}
+.auth-logo {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  letter-spacing: -1px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.auth-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+.auth-tabs {
+  display: flex; gap: 4px;
+  margin-bottom: 20px;
+}
+.auth-tab {
+  flex: 1; padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.auth-tab.active {
+  background: var(--focus);
+  border-color: var(--focus);
+  color: #fff;
+}
+.auth-field { margin-bottom: 14px; }
+.auth-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.auth-input {
+  width: 100%; padding: 11px 14px;
+  background: var(--s2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+.auth-input:focus { border-color: var(--focus); }
+.auth-btn {
+  width: 100%; padding: 13px;
+  background: var(--focus);
+  border: none; border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: opacity .15s;
+}
+.auth-btn:active { opacity: .8; }
+.auth-btn:disabled { opacity: .5; cursor: not-allowed; }
+.auth-error {
+  font-size: 12px;
+  color: var(--ops-red);
+  font-family: var(--font-mono);
+  margin-top: 10px;
+  text-align: center;
+  min-height: 18px;
+}
+.auth-footer {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.auth-loading {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
   <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiS3Jvbm9zIiwic2hvcnRfbmFtZSI6Iktyb25vcyIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTBmIiwidGhlbWVfY29sb3IiOiIjMGEwYTBmIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPVwiaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmdcIiB2aWV3Qm94PVwiMCAwIDEwMCAxMDBcIj48dGV4dCB5PVwiODBcIiBmb250LXNpemU9XCI4MFwiPks8L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
 </head>
 <body>
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div id="auth-loading" class="auth-loading">
+    <div style="width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--focus);border-radius:50%;animation:spin .8s linear infinite"></div>
+    Carregando...
+  </div>
+  <div id="auth-card" class="auth-card" style="display:none">
+    <div class="auth-logo">Kronos</div>
+    <div class="auth-sub">Sistema de gestão e-commerce</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="auth-tab-login" onclick="authSetTab('login')">Entrar</button>
+      <button class="auth-tab" id="auth-tab-register" onclick="authSetTab('register')">Criar conta</button>
+    </div>
+    <div class="auth-field">
+      <div class="auth-label">Email</div>
+      <input class="auth-input" id="auth-email" type="email" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="auth-field">
+      <div class="auth-label">Senha</div>
+      <input class="auth-input" id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSubmit()">
+    </div>
+    <div class="auth-field" id="auth-name-field" style="display:none">
+      <div class="auth-label">Nome (opcional)</div>
+      <input class="auth-input" id="auth-name" type="text" placeholder="Seu nome">
+    </div>
+    <button class="auth-btn" id="auth-submit-btn" onclick="authSubmit()">Entrar</button>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-footer">
+      <a href="#" onclick="authForgotPassword();return false" style="color:var(--focus);text-decoration:none">Esqueci minha senha</a>
+    </div>
+  </div>
+</div>
+
+
 
 <!-- SYNC INDICATOR -->
 <div class="sync-indicator synced" id="search-btn" onclick="searchOpen()" style="cursor:pointer;font-size:16px;padding:4px 8px;color:var(--muted);background:none;border:none">&#128269;</button><span id="sync-ind" style="display:none">
@@ -4823,6 +4990,7 @@ function launchApp() {
   document.getElementById('app-screen').style.display = 'block';
   document.getElementById('sync-ind').style.display = 'flex';
   if (typeof window._startKronos === 'function') {
+    authInit(firebase.app());
     window._startKronos(window._fb);
   }
 }
@@ -4913,7 +5081,7 @@ function setSyncState(state){
 function startFirebaseListeners(fb){
   _fbReady=true;
   const{ref,onValue,db}=fb;
-  onValue(ref(db,'kronos'),snap=>{
+  onValue(ref(db,kronosInitUser()),snap=>{
     const data=snap.val();
     if(!data)return;
     let changed=false;
@@ -10340,9 +10508,12 @@ function mlUpdateNavDot() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  kronosInitUser();
   mlCheckCallback();
   swipeInit();
   registerSW();
+  // Check bill notifications after 3s (data loaded)
+  setTimeout(notifCheckBills, 3000);
 });
 
 
@@ -10561,6 +10732,291 @@ function registerSW() {
   }
 }
 
+
+
+// ════════════════════════════════════════════════════════════════
+//  MULTI-USER — Firebase path per user + workspace sharing
+// ════════════════════════════════════════════════════════════════
+
+var _kronosUID = null;
+var _kronosPath = 'kronos'; // default, updated after auth
+
+function kronosGetUID() {
+  // Persistent UID stored in localStorage
+  var uid = localStorage.getItem('kronos_uid');
+  if (!uid) {
+    uid = 'u_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('kronos_uid', uid);
+  }
+  return uid;
+}
+
+function kronosInitUser() {
+  _kronosUID = kronosGetUID();
+  // Check if user is viewing a shared workspace
+  var sharedUID = localStorage.getItem('kronos_shared_uid');
+  _kronosPath = sharedUID ? ('kronos_' + sharedUID) : ('kronos_' + _kronosUID);
+  return _kronosPath;
+}
+
+function kronosMyPath() {
+  return 'kronos_' + _kronosUID;
+}
+
+function kronosShareWorkspace() {
+  var uid = _kronosUID;
+  var shareText = 'Kronos Workspace ID: ' + uid + '\n\nPara acessar, abra o Kronos → Mais → Acessar Workspace e cole este código.';
+  if (navigator.share) {
+    navigator.share({ title: 'Kronos Workspace', text: shareText });
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(uid);
+    qopShowToast('ID copiado: ' + uid.slice(0,12) + '...');
+  }
+}
+
+function kronosJoinWorkspace() {
+  var mr = document.getElementById('mr');
+  if (!mr) return;
+  mr.innerHTML = '<div class="overlay" onclick="cm(event)"><div class="sheet" onclick="event.stopPropagation()">'
+    + '<div class="sh-drag"></div>'
+    + '<div class="sh-title">Acessar Workspace</div>'
+    + '<div class="sh-body">'
+    + '<p style="font-size:12px;color:var(--muted);margin-bottom:12px">Cole o ID do workspace que você quer acessar. Você poderá ver os dados em modo leitura.</p>'
+    + '<div class="fl">ID do Workspace</div>'
+    + '<input class="fi" id="ws-id-input" placeholder="u_abc123..." style="font-family:var(--font-mono);font-size:12px">'
+    + '<div style="margin-top:8px;padding:10px;background:var(--s2);border-radius:var(--radius);font-size:11px;color:var(--muted)">'
+    + '&#9432; Para sair do workspace compartilhado e voltar ao seu, deixe o campo vazio e confirme.'
+    + '</div>'
+    + '</div>'
+    + '<div class="sh-footer">'
+    + '<button class="btnc" onclick="cm()">Cancelar</button>'
+    + '<button class="btnp" onclick="kronosConfirmJoin()">Confirmar</button>'
+    + '</div>'
+    + '</div></div>';
+}
+
+function kronosConfirmJoin() {
+  var input = document.getElementById('ws-id-input');
+  var wsId = input ? input.value.trim() : '';
+  if (!wsId) {
+    localStorage.removeItem('kronos_shared_uid');
+    qopShowToast('Voltando ao seu workspace');
+  } else {
+    localStorage.setItem('kronos_shared_uid', wsId);
+    qopShowToast('Conectando ao workspace...');
+  }
+  cm();
+  setTimeout(function() { location.reload(); }, 800);
+}
+
+function kronosLeaveShared() {
+  localStorage.removeItem('kronos_shared_uid');
+  qopShowToast('Voltando ao seu workspace');
+  setTimeout(function() { location.reload(); }, 800);
+}
+
+function kronosIsShared() {
+  return !!localStorage.getItem('kronos_shared_uid');
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  NOTIFICAÇÕES DE VENCIMENTO — Web Push local
+// ════════════════════════════════════════════════════════════════
+
+function notifRequestPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    qopShowToast('Notificações já ativadas ✓');
+    return;
+  }
+  Notification.requestPermission().then(function(perm) {
+    if (perm === 'granted') {
+      qopShowToast('Notificações ativadas! Você será avisado de vencimentos.');
+      notifCheckBills();
+    } else {
+      qopShowToast('Notificações bloqueadas. Ative nas configurações do browser.');
+    }
+  });
+}
+
+function notifCheckBills() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (typeof finTx === 'undefined') return;
+
+  var today = todayS();
+  var limit = addD(today, 2); // 48h = 2 days
+
+  var dueBills = finTx.filter(function(t) {
+    return t.type === 'conta_pagar'
+      && t.status === 'pendente'
+      && t.date >= today
+      && t.date <= limit;
+  });
+
+  if (!dueBills.length) return;
+
+  // Throttle: only notify once per day
+  var lastNotif = localStorage.getItem('kronos_last_notif');
+  if (lastNotif === today) return;
+  localStorage.setItem('kronos_last_notif', today);
+
+  dueBills.forEach(function(bill) {
+    var daysUntil = Math.ceil((new Date(bill.date + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000);
+    var when = daysUntil === 0 ? 'Vence HOJE' : daysUntil === 1 ? 'Vence amanhã' : 'Vence em ' + daysUntil + ' dias';
+    try {
+      new Notification('Kronos — ' + when, {
+        body: bill.name + ' — ' + brl(bill.amount || 0),
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%230a0a0f"/><text y="72" x="50" text-anchor="middle" font-size="60" fill="%2334d399">K</text></svg>',
+        badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23f87171"/></svg>',
+        tag: 'bill-' + bill.id,
+      });
+    } catch(e) {}
+  });
+}
+
+// Check bills every time app becomes visible
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) setTimeout(notifCheckBills, 2000);
+});
+
+
+// ════════════════════════════════════════════════════════════════
+//  KRONOS AUTH — Firebase Email/Password Authentication
+// ════════════════════════════════════════════════════════════════
+
+var _authMode = 'login'; // 'login' | 'register'
+var _currentUser = null;
+
+function authInit(app) {
+  var auth = firebase.auth(app);
+
+  // Show card after checking auth state
+  auth.onAuthStateChanged(function(user) {
+    var loadingEl = document.getElementById('auth-loading');
+    var cardEl    = document.getElementById('auth-card');
+    var authScreen = document.getElementById('auth-screen');
+
+    if (user) {
+      // Logged in — set user path and hide auth screen
+      _currentUser = user;
+      _kronosUID   = user.uid;
+      _kronosPath  = 'kronos_' + user.uid;
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (authScreen) authScreen.style.display = 'none';
+      authOnLogin(user);
+    } else {
+      // Not logged in — show login form
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (cardEl) cardEl.style.display = '';
+    }
+  });
+
+  window._firebaseAuth = auth;
+}
+
+function authSetTab(tab) {
+  _authMode = tab;
+  document.getElementById('auth-tab-login')?.classList.toggle('active', tab === 'login');
+  document.getElementById('auth-tab-register')?.classList.toggle('active', tab === 'register');
+  var nameField = document.getElementById('auth-name-field');
+  if (nameField) nameField.style.display = tab === 'register' ? '' : 'none';
+  var btn = document.getElementById('auth-submit-btn');
+  if (btn) btn.textContent = tab === 'login' ? 'Entrar' : 'Criar conta';
+  document.getElementById('auth-error').textContent = '';
+  // Update autocomplete
+  var pwdInput = document.getElementById('auth-password');
+  if (pwdInput) pwdInput.autocomplete = tab === 'register' ? 'new-password' : 'current-password';
+}
+
+function authSubmit() {
+  var email    = (document.getElementById('auth-email')?.value || '').trim();
+  var password = document.getElementById('auth-password')?.value || '';
+  var name     = (document.getElementById('auth-name')?.value || '').trim();
+  var errEl    = document.getElementById('auth-error');
+  var btn      = document.getElementById('auth-submit-btn');
+
+  if (!email || !password) { errEl.textContent = 'Preencha email e senha.'; return; }
+  if (password.length < 6) { errEl.textContent = 'Senha deve ter ao menos 6 caracteres.'; return; }
+
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = _authMode === 'login' ? 'Entrando...' : 'Criando conta...';
+
+  var auth = window._firebaseAuth;
+  if (!auth) { errEl.textContent = 'Firebase não inicializado.'; btn.disabled = false; return; }
+
+  if (_authMode === 'login') {
+    auth.signInWithEmailAndPassword(email, password)
+      .catch(function(e) {
+        errEl.textContent = authErrorMsg(e.code);
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      });
+  } else {
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(function(cred) {
+        if (name && cred.user) {
+          return cred.user.updateProfile({ displayName: name });
+        }
+      })
+      .catch(function(e) {
+        errEl.textContent = authErrorMsg(e.code);
+        btn.disabled = false;
+        btn.textContent = 'Criar conta';
+      });
+  }
+}
+
+function authForgotPassword() {
+  var email = (document.getElementById('auth-email')?.value || '').trim();
+  var errEl = document.getElementById('auth-error');
+  if (!email) { errEl.textContent = 'Digite seu email primeiro.'; return; }
+  var auth = window._firebaseAuth;
+  if (!auth) return;
+  auth.sendPasswordResetEmail(email)
+    .then(function() {
+      errEl.style.color = '#34d399';
+      errEl.textContent = 'Email de recuperação enviado!';
+      setTimeout(function() {
+        errEl.style.color = '';
+        errEl.textContent = '';
+      }, 4000);
+    })
+    .catch(function(e) {
+      errEl.textContent = authErrorMsg(e.code);
+    });
+}
+
+function authSignOut() {
+  if (!confirm('Sair da conta?')) return;
+  var auth = window._firebaseAuth;
+  if (auth) auth.signOut().then(function() { location.reload(); });
+}
+
+function authErrorMsg(code) {
+  var msgs = {
+    'auth/user-not-found':    'Email não encontrado.',
+    'auth/wrong-password':    'Senha incorreta.',
+    'auth/invalid-email':     'Email inválido.',
+    'auth/email-already-in-use': 'Email já cadastrado.',
+    'auth/weak-password':     'Senha muito fraca.',
+    'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde.',
+    'auth/network-request-failed': 'Erro de conexão.',
+    'auth/invalid-credential': 'Email ou senha incorretos.',
+  };
+  return msgs[code] || 'Erro: ' + code;
+}
+
+function authOnLogin(user) {
+  // Called after successful login — init Firebase with user path
+  console.log('Logged in as:', user.email, '| Path:', _kronosPath);
+  // Re-init Firebase listeners with the user's path
+  if (window._fb && typeof startFirebaseListeners === 'function') {
+    startFirebaseListeners(window._fb);
+  }
+  render();
+}
 
 // Expose qopOpen globally for the mini-dash button press & the ops FAB long-press
 // (Mini-dash already navigates to Ops tab on tap — long-press on FAB opens QOP)
