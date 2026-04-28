@@ -1951,18 +1951,18 @@ html, body {
   margin-top: 1px;
 }
 .ops-card-edit {
-  width: 36px; height: 36px;
-  border-radius: 8px;
+  width: 44px; height: 44px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--s2);
   color: var(--text2);
-  font-size: 18px;
-  font-size: 14px;
-  cursor: pointer;
+  font-size: 22px;
   display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
   flex-shrink: 0;
-  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
 }
+.ops-card-edit:active { background: var(--s3); border-color: var(--borderhi); }
 .ops-card-edit:active { background: var(--s3); transform: scale(.9); }
 
 /* Survival bar */
@@ -6735,7 +6735,7 @@ function renderOps() {
               <div class="ops-card-name">${sku.name}</div>
               <div class="ops-card-sku">${sku.sku_id}</div>
             </div>
-            <div class="ops-card-edit" onclick="event.stopPropagation();opsOpenEdit('${sku.sku_id}')">&#8942;</div>
+            <div class="ops-card-edit" onclick="event.stopPropagation();opsOpenEdit('${sku.sku_id}')">✎</div>
           </div>
 
           <div class="ops-survival">
