@@ -5079,12 +5079,23 @@ function setSyncState(state){
   txt.textContent=state==='syncing'?'sync…':state==='synced'?'sync':'offline';
 }
 
+var _fbUnsubscribe = null; // holds the onValue unsubscribe function
+
 function startFirebaseListeners(fb){
   _fbReady=true;
   const{ref,onValue,db}=fb;
+  
+  // Detach previous listener if exists
+  if (typeof _fbUnsubscribe === 'function') {
+    try { _fbUnsubscribe(); } catch(e) {}
+    _fbUnsubscribe = null;
+  }
+
   var listenPath = _currentUser ? ('kronos_'+_currentUser.uid) : kronosInitUser();
   _kronosPath = listenPath;
-  onValue(ref(db,listenPath),snap=>{
+  console.log('Firebase listener attached to:', listenPath);
+  
+  _fbUnsubscribe = onValue(ref(db,listenPath),snap=>{
     const data=snap.val();
     if(!data)return;
     let changed=false;
@@ -5111,11 +5122,8 @@ function startFirebaseListeners(fb){
 }
 
 window._startKronos=function(fb){
-  // startFirebaseListeners is called by authOnLogin after auth check
-  // Only start listeners if user is already authenticated
-  if (typeof _currentUser !== 'undefined' && _currentUser) {
-    startFirebaseListeners(fb);
-  }
+  // startFirebaseListeners is called ONLY by authOnLogin after auth resolves
+  // Do NOT call it here — _currentUser is null at this point (async auth)
   setTimeout(()=>{
     ['kb6','kproj6','kgoals6','krev6','kmit6','kdnotes6','kenergy6','ktmpl6',
       'kops_skus','klog_ship','klog_cutoffs','klog_occ','kfin_tx'].forEach(k=>{
@@ -11099,17 +11107,20 @@ function authOnLogin(user) {
   _kronosUID   = user.uid;
   _kronosPath  = 'kronos_' + user.uid;
   console.log('Logged in:', user.email, '| Path:', _kronosPath);
+
   // Clear old localStorage data from previous user
   var prevUID = localStorage.getItem('kronos_last_uid');
   if (prevUID && prevUID !== user.uid) {
-    // Different user — clear cached data
     ['kb6','kproj6','kgoals6','krev6','kmit6','kdnotes6','kenergy6','ktmpl6',
      'kops_skus','klog_ship','klog_cutoffs','klog_occ','kfin_tx','kml_config'].forEach(function(k) {
       localStorage.removeItem(k);
     });
   }
   localStorage.setItem('kronos_last_uid', user.uid);
+
+  // Start Firebase listener with correct user path
   if (window._fb && typeof startFirebaseListeners === 'function') {
+    _fbReady = false; // reset so listener re-attaches
     startFirebaseListeners(window._fb);
   }
   render();
