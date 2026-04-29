@@ -1534,10 +1534,10 @@ html, body {
 }
 
     <div style=\"font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:4px 0 8px\">Conta</div>
-    <div style=\"background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px\">
+    <div style=\"background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px\" id=\"mais-conta-card\">
       <div style=\"font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0\">&#128100;</div>
-      <div style=\"flex:1\"><div style=\"font-weight:600;font-size:13px\">${_currentUser ? (_currentUser.displayName || _currentUser.email) : 'Conta'}</div><div style=\"font-size:11px;color:var(--muted);margin-top:2px\">${_currentUser ? _currentUser.email : ''}</div></div>
-      <button onclick=\"authSignOut()\" style=\"padding:7px 12px;border-radius:6px;border:1px solid rgba(248,113,113,.25);background:transparent;color:var(--ops-red);font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer\">Sair</button>
+      <div style=\"flex:1\" id=\"mais-conta-info\"><div style=\"font-weight:600;font-size:13px\">Carregando...</div></div>
+      <button onclick=\"authSignOut()\" style=\"padding:7px 12px;border-radius:6px;border:1px solid rgba(248,113,113,.25);background:transparent;color:var(--ops-red);font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent\">Sair</button>
     </div>
     <div style=\"font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:16px 0 8px\">Workspace</div>
     <div style=\"background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer\" onclick=\"kronosShareWorkspace()\">
@@ -6535,6 +6535,14 @@ function renderMais(){
 
   <div class="kpi-g" style="margin-bottom:2px">
     ${[['var(--pf)',blocks.filter(b=>b.cat==='pf').length,'PF'],['var(--pj)',blocks.filter(b=>b.cat==='pj').length,'PJ'],['var(--clt)',blocks.filter(b=>b.cat==='clt').length,'CLT'],['var(--focus)',blocks.filter(b=>b.isFocus).length,'Foco'],['var(--mit)',blocks.filter(b=>b.isMIT).length,'MIT'],['var(--text)',reviews.length,'Revisões']].map(([c,n,l])=>`
+  // Update conta info dynamically (avoids template literal null issue)
+  var contaInfo = document.getElementById('mais-conta-info');
+  if (contaInfo) {
+    var name = _currentUser ? (_currentUser.displayName || _currentUser.email || 'Conta') : 'Nao conectado';
+    var email = _currentUser ? _currentUser.email : '';
+    contaInfo.innerHTML = '<div style="font-weight:600;font-size:13px">' + name + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + email + '</div>';
+  }
     <div class="kpi"><div class="kpi-n" style="color:${c}">${n}</div><div class="kpi-l">${l}</div></div>`).join('')}
   </div>
 
@@ -11000,9 +11008,36 @@ function authForgotPassword() {
 }
 
 function authSignOut() {
-  if (!confirm('Sair da conta?')) return;
+  // confirm() is blocked on iOS PWA — use inline confirmation
+  var mr = document.getElementById('mr');
+  if (!mr) { location.reload(); return; }
+  mr.innerHTML = '<div class="overlay" onclick="cm(event)"><div class="sheet" onclick="event.stopPropagation()" style="max-height:280px">'
+    + '<div class="sh-drag"></div>'
+    + '<div class="sh-title">Sair da conta</div>'
+    + '<div class="sh-body"><p style="font-size:13px;color:var(--text2);margin:0">Tem certeza que deseja sair?</p>'
+    + '<p style="font-size:11px;color:var(--muted);margin-top:8px">Seus dados ficam salvos no Firebase.</p></div>'
+    + '<div class="sh-footer">'
+    + '<button class="btnc" onclick="cm()">Cancelar</button>'
+    + '<button class="btnp" style="background:var(--ops-red);border-color:var(--ops-red)" onclick="authDoSignOut()">Sair</button>'
+    + '</div></div></div>';
+}
+
+function authDoSignOut() {
+  cm();
   var auth = window._firebaseAuth;
-  if (auth) auth.signOut().then(function() { location.reload(); });
+  if (auth) {
+    auth.signOut().then(function() {
+      _currentUser = null;
+      _kronosUID = null;
+      _kronosPath = 'kronos';
+      localStorage.removeItem('kronos_last_uid');
+      location.reload();
+    }).catch(function(e) {
+      qopShowToast('Erro ao sair: ' + e.message);
+    });
+  } else {
+    location.reload();
+  }
 }
 
 function authErrorMsg(code) {
