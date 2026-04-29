@@ -6534,42 +6534,82 @@ function renderMais(){
   <div style="font-family:var(--font-serif);font-size:24px;letter-spacing:-.5px;margin-bottom:4px">Mais</div>
 
   <div class="kpi-g" style="margin-bottom:2px">
-    ${[['var(--pf)',blocks.filter(b=>b.cat==='pf').length,'PF'],['var(--pj)',blocks.filter(b=>b.cat==='pj').length,'PJ'],['var(--clt)',blocks.filter(b=>b.cat==='clt').length,'CLT'],['var(--focus)',blocks.filter(b=>b.isFocus).length,'Foco'],['var(--mit)',blocks.filter(b=>b.isMIT).length,'MIT'],['var(--text)',reviews.length,'Revisões']].map(([c,n,l])=>`
+    ${[['var(--pf)',blocks.filter(b=>b.cat==='pf').length,'PF'],['var(--pj)',blocks.filter(b=>b.cat==='pj').length,'PJ'],['var(--clt)',blocks.filter(b=>b.cat==='clt').length,'CLT'],['var(--focus)',blocks.filter(b=>b.isFocus).length,'FOCO'],['var(--ops-gold)',mitData[todayS()]?1:0,'MIT'],['var(--muted)',reviews.length,'REVISÕES']].map(([c,n,l])=>`
     <div class="kpi"><div class="kpi-n" style="color:${c}">${n}</div><div class="kpi-l">${l}</div></div>`).join('')}
   </div>
 
-  ${avgScore!==null?`<div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:14px">
+  ${avgScore!==null?`<div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:8px;display:flex;align-items:center;gap:14px">
     <div style="font-family:var(--font-serif);font-size:40px;color:${scoreColor(avgScore)};letter-spacing:-1px">${avgScore}</div>
-    <div><div style="font-size:13px;font-weight:600">Score médio (7 dias)</div><div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--font-mono)">${scoreDesc(avgScore)}</div></div>
+    <div><div style="font-size:13px;font-weight:600">Score médio (7 dias)</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Baseado nos últimos 7 dias com registro</div></div>
   </div>`:''}
 
   <div style="display:flex;flex-direction:column;gap:7px">
+
+    <!-- CONTA -->
+    <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:4px 0 4px">Conta</div>
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px" id="mais-conta-card">
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128100;</div>
+      <div style="flex:1" id="mais-conta-info"><div style="font-weight:600;font-size:13px">Carregando...</div></div>
+      <button onclick="authSignOut()" style="padding:9px 14px;border-radius:6px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.08);color:#f87171;font-family:var(--font-mono);font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent">Sair</button>
+    </div>
+
+    <!-- WORKSPACE -->
+    <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:12px 0 4px">Workspace</div>
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="kronosShareWorkspace()">
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128279;</div>
+      <div><div style="font-weight:600;font-size:13px">Compartilhar Workspace</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Copiar ID para outro usuário acessar</div></div>
+    </div>
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="kronosJoinWorkspace()">
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128682;</div>
+      <div><div style="font-weight:600;font-size:13px">Acessar Workspace</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Entrar no workspace de outro usuário</div></div>
+    </div>
+
+    <!-- NOTIFICAÇÕES -->
+    <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:12px 0 4px">Notificações</div>
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="notifRequestPermission()">
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128276;</div>
+      <div><div style="font-weight:600;font-size:13px">Notificações de vencimento</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Alertas 48h antes do vencimento de contas</div></div>
+    </div>
+
+    <!-- DADOS -->
+    <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:12px 0 4px">Dados</div>
     <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="exportJSON()">
-      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">💾</div>
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128190;</div>
       <div><div style="font-weight:600;font-size:13px">Backup JSON</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Exportar todos os dados como .json</div></div>
     </div>
     <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="importJSON()">
-      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">📥</div>
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128229;</div>
       <div><div style="font-weight:600;font-size:13px">Restaurar JSON</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Importar backup .json</div></div>
     </div>
     <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="exportAll()">
-      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">📅</div>
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128197;</div>
       <div><div style="font-weight:600;font-size:13px">Apple Calendar</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Exportar todos os blocos (.ICS)</div></div>
     </div>
     <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="exportDayTxt()">
-      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">📓</div>
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128211;</div>
       <div><div style="font-weight:600;font-size:13px">Apple Notes — Dia atual</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Share Sheet do iOS</div></div>
     </div>
     <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="exportMonthRetro()">
-      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">📊</div>
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128202;</div>
       <div><div style="font-weight:600;font-size:13px">Retrospectiva mensal</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Gera resumo de ${MONTHS[NOW().getMonth()]}</div></div>
     </div>
     <div style="background:var(--s1);border:1px solid rgba(248,113,113,.18);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="if(confirm('Apagar todos os dados?')){blocks=[];reviews=[];mitData={};dayNotes={};saveAll();render();}">
-      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:rgba(248,113,113,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0">🗑</div>
+      <div style="font-size:18px;width:42px;height:42px;border-radius:var(--radius);background:rgba(248,113,113,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0">&#128465;</div>
       <div><div style="font-weight:600;font-size:13px;color:#f87171">Limpar todos os dados</div></div>
     </div>
   </div>`;
+
+  // Update conta info with current user
+  var contaInfo = document.getElementById('mais-conta-info');
+  if (contaInfo) {
+    var u = _currentUser;
+    contaInfo.innerHTML = '<div style="font-weight:600;font-size:13px">'
+      + (u ? (u.displayName || u.email || 'Conta') : 'Não conectado')
+      + '</div><div style="font-size:11px;color:var(--muted);margin-top:2px">'
+      + (u ? u.email : '') + '</div>';
+  }
 }
+
 
 // -- MONTHLY RETRO
   var contaInfo = document.getElementById('mais-conta-info');
