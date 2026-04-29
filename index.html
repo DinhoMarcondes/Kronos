@@ -5418,10 +5418,11 @@ function renderGrid(){
   grid.innerHTML=html;
   // Unified click delegation — handles slot clicks AND avoids conflicts
   grid.addEventListener('click', function(ev) {
-    // Slot click (empty area) — only if not clicking a tblock
+    // Ignore clicks on tblock or any child (tb-chk, tb-bot, etc.)
+    if (ev.target.closest('.tblock')) return;
+    if (ev.target.closest('.tb-chk')) return;
     const col = ev.target.closest('.tg-col');
-    const block = ev.target.closest('.tblock');
-    if (col && !block) {
+    if (col) {
       var t = col.getAttribute('data-time');
       if (t) openAdd(t);
     }
