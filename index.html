@@ -6535,14 +6535,6 @@ function renderMais(){
 
   <div class="kpi-g" style="margin-bottom:2px">
     ${[['var(--pf)',blocks.filter(b=>b.cat==='pf').length,'PF'],['var(--pj)',blocks.filter(b=>b.cat==='pj').length,'PJ'],['var(--clt)',blocks.filter(b=>b.cat==='clt').length,'CLT'],['var(--focus)',blocks.filter(b=>b.isFocus).length,'Foco'],['var(--mit)',blocks.filter(b=>b.isMIT).length,'MIT'],['var(--text)',reviews.length,'Revisões']].map(([c,n,l])=>`
-  // Update conta info dynamically (avoids template literal null issue)
-  var contaInfo = document.getElementById('mais-conta-info');
-  if (contaInfo) {
-    var name = _currentUser ? (_currentUser.displayName || _currentUser.email || 'Conta') : 'Nao conectado';
-    var email = _currentUser ? _currentUser.email : '';
-    contaInfo.innerHTML = '<div style="font-weight:600;font-size:13px">' + name + '</div>'
-      + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + email + '</div>';
-  }
     <div class="kpi"><div class="kpi-n" style="color:${c}">${n}</div><div class="kpi-l">${l}</div></div>`).join('')}
   </div>
 
@@ -6580,6 +6572,14 @@ function renderMais(){
 }
 
 // -- MONTHLY RETRO
+  var contaInfo = document.getElementById('mais-conta-info');
+  if (contaInfo) {
+    var u = _currentUser;
+    contaInfo.innerHTML = '<div style="font-weight:600;font-size:13px">'
+      + (u ? (u.displayName || u.email || 'Conta') : 'Nao conectado')
+      + '</div><div style="font-size:11px;color:var(--muted);margin-top:2px">'
+      + (u ? u.email : '') + '</div>';
+  }
 function exportMonthRetro(){
   const m=NOW().getMonth(),y=NOW().getFullYear();
   const daysInMonth=new Date(y,m+1,0).getDate();
