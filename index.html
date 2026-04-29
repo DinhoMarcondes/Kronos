@@ -1051,7 +1051,7 @@ html, body {
 .sub-dot.done { background: var(--pf); border-color: var(--pf); }
 
 .tb-chk {
-  width: 28px; height: 28px;
+  width: 32px; height: 32px;
   border-radius: 5px;
   border: 1.5px solid var(--dim, #2e2e3e);
   border-color: rgba(255,255,255,.12);
@@ -1062,8 +1062,9 @@ html, body {
   font-size: 9px;
   cursor: pointer;
   transition: all .2s;
-  color: transparent;
+  color: var(--muted);
 }
+.tb-chk.on { color: var(--text); border-color: var(--focus); background: rgba(99,102,241,.15); }
 
 .tb-chk.on {
   background: var(--pf-bg);
@@ -5495,13 +5496,18 @@ function renderGrid(){
     const _pb=document.createElement('div');_pb.className='tb-progress';
     const _pbf=document.createElement('div');_pbf.className='tb-progress-fill';
     _pbf.style.width=_progPct+'%';_pb.appendChild(_pbf);el.appendChild(_pb);
+    // Add onclick directly on tb-chk for reliable desktop+mobile
+    var chkEl = el.querySelector('.tb-chk');
+    if (chkEl) {
+      chkEl.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        chkBlock(chkEl.dataset.bid, chkEl.dataset.mid, chkEl.dataset.date);
+      });
+    }
     el.addEventListener('click', function(ev){
       ev.stopPropagation();
-      const chk = ev.target.closest('.tb-chk');
-      if(chk){
-        chkBlock(chk.dataset.bid, chk.dataset.mid, chk.dataset.date);
-        return;
-      }
+      if(ev.target.closest('.tb-chk')) return;
       openDetail(b.id, b._mid, b.date);
     });
 
