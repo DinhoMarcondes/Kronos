@@ -5059,7 +5059,8 @@ function flushToFirebase(){
   if(!_fbReady||!window._fb)return;
   const{ref,update,db}=window._fb;
   const updates={};
-  Object.entries(_fbWriteQueue).forEach(([k,v])=>{updates['kronos/'+k]=v;});
+  var path = _currentUser ? ('kronos_'+_currentUser.uid) : (_kronosPath||'kronos');
+  Object.entries(_fbWriteQueue).forEach(([k,v])=>{updates[path+'/'+k]=v;});
   _fbWriteQueue={};
   setSyncState('syncing');
   update(ref(db),updates)
@@ -5081,7 +5082,9 @@ function setSyncState(state){
 function startFirebaseListeners(fb){
   _fbReady=true;
   const{ref,onValue,db}=fb;
-  onValue(ref(db,kronosInitUser()),snap=>{
+  var listenPath = _currentUser ? ('kronos_'+_currentUser.uid) : kronosInitUser();
+  _kronosPath = listenPath;
+  onValue(ref(db,listenPath),snap=>{
     const data=snap.val();
     if(!data)return;
     let changed=false;
@@ -5108,7 +5111,11 @@ function startFirebaseListeners(fb){
 }
 
 window._startKronos=function(fb){
-  startFirebaseListeners(fb);
+  // startFirebaseListeners is called by authOnLogin after auth check
+  // Only start listeners if user is already authenticated
+  if (typeof _currentUser !== 'undefined' && _currentUser) {
+    startFirebaseListeners(fb);
+  }
   setTimeout(()=>{
     ['kb6','kproj6','kgoals6','krev6','kmit6','kdnotes6','kenergy6','ktmpl6',
       'kops_skus','klog_ship','klog_cutoffs','klog_occ','kfin_tx'].forEach(k=>{
@@ -10752,8 +10759,12 @@ function kronosGetUID() {
 }
 
 function kronosInitUser() {
-  _kronosUID = kronosGetUID();
-  // Check if user is viewing a shared workspace
+  // Priority: Firebase Auth UID > localStorage UID
+  if (_currentUser && _currentUser.uid) {
+    _kronosUID = _currentUser.uid;
+  } else {
+    _kronosUID = kronosGetUID();
+  }
   var sharedUID = localStorage.getItem('kronos_shared_uid');
   _kronosPath = sharedUID ? ('kronos_' + sharedUID) : ('kronos_' + _kronosUID);
   return _kronosPath;
@@ -11009,9 +11020,20 @@ function authErrorMsg(code) {
 }
 
 function authOnLogin(user) {
-  // Called after successful login — init Firebase with user path
-  console.log('Logged in as:', user.email, '| Path:', _kronosPath);
-  // Re-init Firebase listeners with the user's path
+  _currentUser = user;
+  _kronosUID   = user.uid;
+  _kronosPath  = 'kronos_' + user.uid;
+  console.log('Logged in:', user.email, '| Path:', _kronosPath);
+  // Clear old localStorage data from previous user
+  var prevUID = localStorage.getItem('kronos_last_uid');
+  if (prevUID && prevUID !== user.uid) {
+    // Different user — clear cached data
+    ['kb6','kproj6','kgoals6','krev6','kmit6','kdnotes6','kenergy6','ktmpl6',
+     'kops_skus','klog_ship','klog_cutoffs','klog_occ','kfin_tx','kml_config'].forEach(function(k) {
+      localStorage.removeItem(k);
+    });
+  }
+  localStorage.setItem('kronos_last_uid', user.uid);
   if (window._fb && typeof startFirebaseListeners === 'function') {
     startFirebaseListeners(window._fb);
   }
