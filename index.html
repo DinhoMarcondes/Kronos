@@ -11123,7 +11123,36 @@ function authOnLogin(user) {
     _fbReady = false; // reset so listener re-attaches
     startFirebaseListeners(window._fb);
   }
+
+  // Migrate existing localStorage data to Firebase on first login
+  setTimeout(function() { kronosMigrateToFirebase(); }, 1500);
+
   render();
+}
+
+
+// Migrate localStorage data to Firebase user path
+function kronosMigrateToFirebase() {
+  if (!_currentUser || !window._fb) return;
+  var keys = ['kb6','kproj6','kgoals6','krev6','kmit6','kdnotes6','kenergy6','ktmpl6',
+               'kops_skus','klog_ship','klog_cutoffs','klog_occ','kfin_tx','kml_config'];
+  var hasData = false;
+  keys.forEach(function(k) {
+    var v = localStorage.getItem(k);
+    if (v && v !== 'null' && v !== '[]' && v !== '{}') {
+      try {
+        var parsed = JSON.parse(v);
+        if (parsed && (Array.isArray(parsed) ? parsed.length > 0 : Object.keys(parsed).length > 0)) {
+          hasData = true;
+          sv2(k, parsed);
+        }
+      } catch(e) {}
+    }
+  });
+  if (hasData) {
+    console.log('Kronos: migrating localStorage data to Firebase path', _kronosPath);
+    setTimeout(function() { flushToFirebase(); }, 500);
+  }
 }
 
 // Expose qopOpen globally for the mini-dash button press & the ops FAB long-press
