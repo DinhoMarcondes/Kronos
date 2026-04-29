@@ -5489,7 +5489,7 @@ function renderGrid(){
       <div class="tb-bot">
         <span class="tb-time">${b.start}–${b.end}</span>
         ${isRun?`<span class="tb-timer-sm" id="tts-${b.id}">▶</span>`:''}
-        <div class="tb-chk${b.done?' on':''}" data-bid="${b.id}" data-mid="${b._mid||''}" data-date="${b.date}">${b.done?'✓':''}</div>
+        <div class="tb-chk${b.done?' on':''}" data-bid="${b.id}" data-mid="${b._mid||''}" data-date="${b.date}" onclick="event.stopPropagation();chkBlock(this.dataset.bid,this.dataset.mid,this.dataset.date)">${b.done?'✓':''}</div>
       </div>`;
 
     // Progress bar
