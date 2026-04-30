@@ -707,7 +707,7 @@ html, body {
 
 .tg-row.on-half .tg-lbl span { display: none; }
 
-.tg-col { pointer-events: none; position: relative;
+.tg-col { pointer-events: auto; position: relative;
   flex: 1;
   position: relative;
   cursor: pointer;
@@ -5412,21 +5412,12 @@ function renderGrid(){
     const zone=m<12*60?'manha':m<18*60?'tarde':'noite';
     html+=`<div class="tg-row ${isH?'on-hour':'on-half'}">
       <div class="tg-lbl"><span>${isH?t:''}</span></div>
-      <div class="tg-col zone-bg-${zone}" data-time="${t}"><div class="slot-hint">+</div></div>
+      <div class="tg-col zone-bg-${zone}" data-time="${t}"><div class="slot-hint" onclick="event.stopPropagation();openAdd('${t}')">+</div></div>
     </div>`;
   }
   grid.innerHTML=html;
-  // Unified click delegation — handles slot clicks AND avoids conflicts
-  grid.addEventListener('click', function(ev) {
-    // Ignore clicks on tblock or any child (tb-chk, tb-bot, etc.)
-    if (ev.target.closest('.tblock')) return;
-    if (ev.target.closest('.tb-chk')) return;
-    const col = ev.target.closest('.tg-col');
-    if (col) {
-      var t = col.getAttribute('data-time');
-      if (t) openAdd(t);
-    }
-  });
+  // No grid-level click delegation — slot-hint has its own onclick
+  // tblock clicks handled by individual block listeners
   const rows=grid.querySelectorAll('.tg-row');
 
   // Detect collisions for side-by-side rendering
@@ -5508,6 +5499,7 @@ function renderGrid(){
     }
     el.addEventListener('click', function(ev){
       ev.stopPropagation();
+      ev.cancelBubble = true;
       if(ev.target.closest('.tb-chk')) return;
       openDetail(b.id, b._mid, b.date);
     });
