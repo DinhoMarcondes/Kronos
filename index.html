@@ -5314,70 +5314,48 @@ function scoreDesc(s){
 
 // -- SCORE BAR
 function updateScoreBar(){
-  const db=bForDate(selDate);
-  const mins={pf:0,pj:0,clt:0};
-  db.forEach(b=>{mins[b.cat]+=Math.max(toM(b.end)-toM(b.start),0);});
-  const tot=mins.pf+mins.pj+mins.clt||1;
-  const bar=document.getElementById('prod-bar');
-  bar.innerHTML=['pf','pj','clt'].map(c=>`<div class="pb-s ${c}" style="width:${mins[c]/tot*100}%"></div>`).join('');
-  ['pf','pj','clt'].forEach(c=>document.getElementById('sc-'+c).textContent=c.toUpperCase()+' '+durF(mins[c]));
-  const pct=db.length?Math.round(db.filter(b=>b.done).length/db.length*100):0;
-  document.getElementById('sc-pct').textContent=pct+'%';
-  const score=calcScore(selDate);
-  const sn=document.getElementById('score-num');
-  sn.textContent=score!==null?score:'—';
-  sn.style.color=score!==null?scoreColor(score):'var(--muted)';
-  // Score trend arrow
-  let trendEl=document.getElementById('score-trend-el');
-  if(!trendEl){
-    trendEl=document.createElement('span');
-    trendEl.id='score-trend-el';
-    trendEl.className='score-trend';
-    sn.parentNode.appendChild(trendEl);
-  }
-  const trend=scoreTrend(selDate);
-  if(trend==='up'){trendEl.textContent='↑';trendEl.className='score-trend up';}
-  else if(trend==='down'){trendEl.textContent='↓';trendEl.className='score-trend down';}
-  else if(trend==='flat'){trendEl.textContent='→';trendEl.className='score-trend flat';}
-  else{trendEl.textContent='';}
+  try {
+    const db=bForDate(selDate);
+    const mins={pf:0,pj:0,clt:0};
+    db.forEach(b=>{if(b.cat&&mins[b.cat]!==undefined)mins[b.cat]+=Math.max(toM(b.end)-toM(b.start),0);});
+    const tot=mins.pf+mins.pj+mins.clt||1;
+    const bar=document.getElementById('prod-bar');
+    if(bar)bar.innerHTML=['pf','pj','clt'].map(c=>`<div class="pb-s ${c}" style="width:${mins[c]/tot*100}%"></div>`).join('');
+    ['pf','pj','clt'].forEach(c=>{const el=document.getElementById('sc-'+c);if(el)el.textContent=c.toUpperCase()+' '+durF(mins[c]);});
+    const pct=db.length?Math.round(db.filter(b=>b.done).length/db.length*100):0;
+    const pctEl=document.getElementById('sc-pct');if(pctEl)pctEl.textContent=pct+'%';
+    const score=calcScore(selDate);
+    const sn=document.getElementById('score-num');
+    if(sn){sn.textContent=score!==null?score:'—';sn.style.color=score!==null?scoreColor(score):'var(--muted)';}
+  } catch(e) { console.warn('updateScoreBar',e.message); }
 }
 
 // -- BANNERS
 function updateBanners(){
-  const mit=mitData[selDate];
-  const mc=document.getElementById('mit-content');
-  if(mit&&mit.title){mc.textContent=mit.title;mc.className='mit-title';} else {mc.textContent='Definir para hoje…';mc.className='mit-empty';}
-  const note=dayNotes[selDate];
-  const dn=document.getElementById('day-note-txt');
-  if(note){dn.textContent=note;document.getElementById('day-note-bar').className='day-note-bar has';}
-  else{dn.textContent='Contexto do dia…';document.getElementById('day-note-bar').className='day-note-bar';}
-  const db=bForDate(selDate);
-  const totalMins=db.reduce((a,b)=>a+Math.max(toM(b.end)-toM(b.start),0),0);
-  const availMins=(GE-GS);
-  const ob=document.getElementById('overload-banner');
-  if(totalMins>availMins*0.9){
-    ob.style.display='flex';
-    document.getElementById('overload-txt').textContent=`Dia superalocado: ${durF(totalMins)} planejado de ${durF(availMins)} disponível`;
-  } else ob.style.display='none';
-  // Energy balance
-  checkEnergyBalance();
-  const sorted=db.sort((a,b2)=>toM(a.start)-toM(b2.start));
-  let ctxWarn=null;
-  for(let i=1;i<sorted.length;i++){
-    const prev=sorted[i-1],cur=sorted[i];
-    if(prev.cat!==cur.cat&&toM(cur.start)-toM(prev.end)<15&&!prev.done&&!cur.done){
-      ctxWarn=`Troca de contexto sem buffer: ${prev.cat.toUpperCase()}→${cur.cat.toUpperCase()} (${prev.end}→${cur.start})`;
-      break;
-    }
-  }
-  const cw=document.getElementById('ctx-warn');
-  if(ctxWarn){cw.style.display='flex';document.getElementById('ctx-txt').textContent=ctxWarn;}
-  else cw.style.display='none';
-  // Ops mini-dashboard
-  try { updateOpsMiniDash(); } catch(e) { console.error('miniDash', e); }
-  try { updateHealthMonitor(); } catch(e) {}
-  try { updateABCStrip(); } catch(e) {}
-  try { mlUpdateNavDot(); } catch(e) {}
+  try {
+    const mit=mitData[selDate];
+    const mc=document.getElementById('mit-content');
+    if(mc){if(mit&&mit.title){mc.textContent=mit.title;mc.className='mit-title';}else{mc.textContent='Definir para hoje…';mc.className='mit-empty';}}
+    const note=dayNotes[selDate];
+    const dn=document.getElementById('day-note-txt');
+    const dnb=document.getElementById('day-note-bar');
+    if(dn){if(note){dn.textContent=note;if(dnb)dnb.className='day-note-bar has';}else{dn.textContent='Contexto do dia…';if(dnb)dnb.className='day-note-bar';}}
+    const db=bForDate(selDate);
+    const totalMins=db.reduce((a,b)=>a+Math.max(toM(b.end)-toM(b.start),0),0);
+    const availMins=(GE-GS);
+    const ob=document.getElementById('overload-banner');
+    if(ob){if(totalMins>availMins*0.9){ob.style.display='flex';const ot=document.getElementById('overload-txt');if(ot)ot.textContent=`Dia superalocado: ${durF(totalMins)} planejado de ${durF(availMins)} disponível`;}else ob.style.display='none';}
+    const sorted=db.sort((a,b2)=>toM(a.start)-toM(b2.start));
+    let ctxWarn=null;
+    for(let i=1;i<sorted.length;i++){const prev=sorted[i-1],cur=sorted[i];if(prev.cat!==cur.cat&&toM(cur.start)-toM(prev.end)<15&&!prev.done&&!cur.done){ctxWarn=`Troca de contexto sem buffer: ${prev.cat.toUpperCase()}→${cur.cat.toUpperCase()} (${prev.end}→${cur.start})`;break;}}
+    const cw=document.getElementById('ctx-warn');
+    if(cw){if(ctxWarn){cw.style.display='flex';const ct=document.getElementById('ctx-txt');if(ct)ct.textContent=ctxWarn;}else cw.style.display='none';}
+    try{checkEnergyBalance();}catch(e){}
+    try{updateOpsMiniDash();}catch(e){}
+    try{updateHealthMonitor();}catch(e){}
+    try{updateABCStrip();}catch(e){}
+    try{mlUpdateNavDot();}catch(e){}
+  } catch(e){ console.warn('updateBanners',e.message); }
 }
 
 // -- DAY STRIP
