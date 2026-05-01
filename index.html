@@ -4827,9 +4827,11 @@ html, body {
     <div class="ops-mod-tabs">
       <button class="ops-mod-tab active" id="mod-tab-ops" onclick="switchOpsModule('ops')">Inventario</button>
       <button class="ops-mod-tab" id="mod-tab-log" onclick="switchOpsModule('log')">Logistica</button>
+      <button class="ops-mod-tab" id="mod-tab-sup" onclick="switchOpsModule('sup')">Fornecedores</button>
     </div>
     <div class="ops-body" id="ops-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(100px + var(--safe-b))"></div>
-    <div class="log-body" id="log-body"></div>
+    <div class="log-body" id="log-body">
+    <div class="sup-body" id="sup-body" style="display:none;padding:8px 16px calc(100px + var(--safe-b));overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1"></div></div>
   </div>
   </div>
 </div>
@@ -5130,6 +5132,7 @@ function startFirebaseListeners(fb){
     if(data.kfin_tx){const j=JSON.stringify(data.kfin_tx);if(j!==localStorage.getItem('kfin_tx')){localStorage.setItem('kfin_tx',j);if(typeof finTx!=='undefined')finTx=data.kfin_tx;changed=true;}}
     // ML
     if(data.kml_config){const j=JSON.stringify(data.kml_config);if(j!==localStorage.getItem('kml_config')){localStorage.setItem('kml_config',j);if(typeof mlConfig!=='undefined')mlConfig=data.kml_config;changed=true;}}
+    if(data.ksuppliers){const j=JSON.stringify(data.ksuppliers);if(j!==localStorage.getItem('ksuppliers')){localStorage.setItem('ksuppliers',j);if(typeof suppliers!=='undefined')suppliers=data.ksuppliers;changed=true;}}
     if(changed&&typeof render==='function'){setSyncState('synced');render();}
   },err=>{console.error('FB listener error',err);setSyncState('offline');});
 }
@@ -7231,6 +7234,11 @@ function opsOpenForm(ex) {
     + '<option value="AMZ">Amazon FBA</option>'
     + '<option value="BOTH">Ambos</option>'
     + '</select></div></div>'
+    + '<div><div class="fl">Fornecedor</div>'
+    + '<select class="fi" id="of-supplier" style="appearance:auto;cursor:pointer">'
+    + '<option value="">Nenhum</option>'
+    + (typeof suppliers !== "undefined" ? suppliers.map(function(s) { return '<option value="' + s.id + '">' + (s.emoji||'🏭') + ' ' + s.name + '</option>'; }).join('') : '')
+    + '</select></div>'
     + '<div class="ops-form-section">Estoque &amp; Giro</div>'
     + '<div class="ops-grid2">'
     + '<div><div class="fl">Un. no Full/FBA</div><input class="fi" id="of-stock" type="number" min="0" step="1" placeholder="100"></div>'
@@ -7677,11 +7685,15 @@ function switchOpsModule(mod) {
   _logModule = mod;
   document.getElementById('mod-tab-ops')?.classList.toggle('active', mod === 'ops');
   document.getElementById('mod-tab-log')?.classList.toggle('active', mod === 'log');
+  document.getElementById('mod-tab-sup')?.classList.toggle('active', mod === 'sup');
   var obsBody = document.getElementById('ops-body');
   var logBody = document.getElementById('log-body');
+  var supBody = document.getElementById('sup-body');
   if (obsBody) obsBody.style.display = mod === 'ops' ? '' : 'none';
   if (logBody) logBody.classList.toggle('show', mod === 'log');
+  if (supBody) supBody.style.display = mod === 'sup' ? '' : 'none';
   if (mod === 'log') { _logTab = _logTab || 'pipe'; renderLog(); }
+  else if (mod === 'sup') { renderSuppliers(); }
   else { if (_logTimerIv) { clearInterval(_logTimerIv); _logTimerIv = null; } renderOps(); }
 }
 
@@ -11151,6 +11163,168 @@ function kronosMigrateToFirebase() {
         qopShowToast('Erro sync: ' + e.message);
       });
   }
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  FORNECEDORES
+// ════════════════════════════════════════════════════════════════
+
+var suppliers = ld('ksuppliers', []);
+
+function supSave() { sv2('ksuppliers', suppliers); }
+
+function renderSuppliers() {
+  var el = document.getElementById('sup-body');
+  if (!el) return;
+
+  var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    + '<div style="font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">'
+    + suppliers.length + ' fornecedor' + (suppliers.length !== 1 ? 'es' : '') + '</div>'
+    + '<button onclick="supOpenForm(null)" style="padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--s2);color:var(--text2);font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer">+ Novo</button>'
+    + '</div>';
+
+  if (!suppliers.length) {
+    h += '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">'
+      + '<div style="font-size:32px;margin-bottom:12px">🏭</div>'
+      + '<div style="font-weight:600;margin-bottom:6px">Nenhum fornecedor cadastrado</div>'
+      + '<div style="font-size:11px">Clique em "+ Novo" para adicionar</div></div>';
+  } else {
+    suppliers.forEach(function(s) {
+      var skuCount = opsSKUs.filter(function(k) { return k.supplier_id === s.id; }).length;
+      var catColor = s.category === 'nacional' ? '#34d399' : s.category === 'importado' ? 'var(--ops-gold)' : 'var(--muted)';
+      h += '<div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:8px;cursor:pointer" data-sid="' + s.id + '" onclick="supOpenForm(this.dataset.sid)">';
+      h += '<div style="display:flex;align-items:flex-start;gap:12px">';
+      h += '<div style="width:40px;height:40px;border-radius:var(--radius);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">' + (s.emoji || '🏭') + '</div>';
+      h += '<div style="flex:1;min-width:0">';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+      h += '<div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s.name + '</div>';
+      h += '<span style="font-size:9px;font-weight:700;font-family:var(--font-mono);padding:2px 6px;border-radius:4px;background:var(--s2);color:' + catColor + ';flex-shrink:0">' + (s.category || 'outro').toUpperCase() + '</span>';
+      h += '</div>';
+      if (s.contact) h += '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">📞 ' + s.contact + '</div>';
+      if (s.email) h += '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">✉ ' + s.email + '</div>';
+      if (s.website) h += '<div style="font-size:11px;color:var(--focus)">🌐 ' + s.website + '</div>';
+      h += '</div>';
+      h += '<div style="text-align:right;flex-shrink:0">';
+      h += '<div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text)">' + (s.lead_time || '—') + '<span style="font-size:10px;color:var(--muted)">d</span></div>';
+      h += '<div style="font-size:9px;font-family:var(--font-mono);color:var(--muted);text-transform:uppercase">Lead Time</div>';
+      if (skuCount) h += '<div style="font-size:10px;color:var(--muted);margin-top:4px">' + skuCount + ' SKU' + (skuCount > 1 ? 's' : '') + '</div>';
+      h += '</div></div>';
+      // Tags/notes
+      if (s.payment_terms) {
+        h += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)">';
+        h += '💳 ' + s.payment_terms;
+        if (s.min_order) h += ' &nbsp;·&nbsp; 📦 Pedido mínimo: ' + s.min_order;
+        h += '</div>';
+      }
+      if (s.notes) h += '<div style="margin-top:6px;font-size:11px;color:var(--muted);font-style:italic">' + s.notes + '</div>';
+      h += '</div>';
+    });
+  }
+
+  el.innerHTML = h;
+}
+
+function supOpenForm(supId) {
+  var mr = document.getElementById('mr');
+  if (!mr) return;
+  var ex = supId ? suppliers.find(function(s) { return s.id === supId; }) : null;
+  var isEdit = !!ex;
+
+  mr.innerHTML = '<div class="overlay" onclick="cm(event)"><div class="sheet" onclick="event.stopPropagation()">'
+    + '<div class="sh-drag"></div>'
+    + '<div class="sh-title">' + (isEdit ? 'Editar Fornecedor' : 'Novo Fornecedor') + '</div>'
+    + '<div class="sh-body" style="gap:10px">'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">Nome *</div><input class="fi" id="sf-name" placeholder="Ex: Fornecedor ABC"></div>'
+    + '<div><div class="fl">Emoji</div><input class="fi" id="sf-emoji" placeholder="🏭" style="font-size:20px;text-align:center" maxlength="2"></div>'
+    + '</div>'
+    + '<div><div class="fl">Categoria</div>'
+    + '<select class="fi" id="sf-cat" style="appearance:auto;cursor:pointer">'
+    + '<option value="nacional">Nacional</option>'
+    + '<option value="importado">Importado</option>'
+    + '<option value="dropshipping">Dropshipping</option>'
+    + '<option value="outro">Outro</option>'
+    + '</select></div>'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">Contato / WhatsApp</div><input class="fi" id="sf-contact" placeholder="(11) 99999-9999" type="tel"></div>'
+    + '<div><div class="fl">Email</div><input class="fi" id="sf-email" placeholder="contato@fornecedor.com" type="email"></div>'
+    + '</div>'
+    + '<div><div class="fl">Website</div><input class="fi" id="sf-website" placeholder="www.fornecedor.com.br"></div>'
+    + '<div class="ops-grid2">'
+    + '<div><div class="fl">Lead Time (dias)</div><input class="fi" id="sf-lead" type="number" min="1" placeholder="15"></div>'
+    + '<div><div class="fl">Pedido mínimo</div><input class="fi" id="sf-minorder" placeholder="Ex: R$ 500 ou 100 un"></div>'
+    + '</div>'
+    + '<div><div class="fl">Condições de pagamento</div><input class="fi" id="sf-payment" placeholder="Ex: 30/60 dias ou à vista 5%"></div>'
+    + '<div><div class="fl">Notas</div><textarea class="fi" id="sf-notes" rows="3" placeholder="Observações, produtos fornecidos, etc..." style="resize:vertical;font-family:var(--font-sans);font-size:13px"></textarea></div>'
+    + '</div>'
+    + '<div class="sh-footer">'
+    + '<button class="btnc" onclick="cm()">Cancelar</button>'
+    + '<button class="btnp" style="background:var(--ops-gold);color:#000" onclick="supSaveForm()">Salvar</button>'
+    + '</div>'
+    + (isEdit ? '<div style="padding:0 20px 8px"><button id="sf-del-btn" style="width:100%;padding:11px;border-radius:var(--radius);border:1px solid rgba(248,113,113,.22);background:rgba(248,113,113,.06);color:#f87171;font-family:var(--font-sans);font-size:13px;font-weight:600;cursor:pointer">Excluir Fornecedor</button></div>' : '')
+    + '</div></div>';
+
+  // Set values via DOM
+  if (ex) {
+    var set = function(id, val) { var el = document.getElementById(id); if(el && val != null) el.value = val; };
+    set('sf-name',    ex.name || '');
+    set('sf-emoji',   ex.emoji || '');
+    set('sf-cat',     ex.category || 'nacional');
+    set('sf-contact', ex.contact || '');
+    set('sf-email',   ex.email || '');
+    set('sf-website', ex.website || '');
+    set('sf-lead',    ex.lead_time || '');
+    set('sf-minorder',ex.min_order || '');
+    set('sf-payment', ex.payment_terms || '');
+    set('sf-notes',   ex.notes || '');
+    var delBtn = document.getElementById('sf-del-btn');
+    if (delBtn) delBtn.onclick = function() { supDelete(ex.id); };
+  }
+
+  window._supEditId = supId;
+}
+
+function supSaveForm() {
+  var name = (document.getElementById('sf-name')?.value || '').trim();
+  if (!name) { qopShowToast('Nome obrigatório'); return; }
+
+  var data = {
+    id:           window._supEditId || ('sup_' + Date.now()),
+    name:         name,
+    emoji:        document.getElementById('sf-emoji')?.value || '🏭',
+    category:     document.getElementById('sf-cat')?.value || 'nacional',
+    contact:      document.getElementById('sf-contact')?.value || '',
+    email:        document.getElementById('sf-email')?.value || '',
+    website:      document.getElementById('sf-website')?.value || '',
+    lead_time:    parseInt(document.getElementById('sf-lead')?.value) || 0,
+    min_order:    document.getElementById('sf-minorder')?.value || '',
+    payment_terms:document.getElementById('sf-payment')?.value || '',
+    notes:        document.getElementById('sf-notes')?.value || '',
+    updated_at:   new Date().toISOString(),
+  };
+
+  if (window._supEditId) {
+    var idx = suppliers.findIndex(function(s) { return s.id === window._supEditId; });
+    if (idx >= 0) suppliers[idx] = data;
+  } else {
+    suppliers.push(data);
+  }
+
+  supSave();
+  cm();
+  renderSuppliers();
+  qopShowToast(window._supEditId ? 'Fornecedor atualizado' : 'Fornecedor cadastrado');
+  window._supEditId = null;
+}
+
+function supDelete(supId) {
+  if (!confirm('Excluir este fornecedor?')) return;
+  suppliers = suppliers.filter(function(s) { return s.id !== supId; });
+  supSave();
+  cm();
+  renderSuppliers();
+  qopShowToast('Fornecedor excluído');
 }
 
 // Expose qopOpen globally for the mini-dash button press & the ops FAB long-press
