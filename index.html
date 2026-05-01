@@ -5458,42 +5458,51 @@ function renderGrid(){
 
     const _subsDone=subs.filter(s=>s.done).length;
     const _progPct=subs.length?Math.round(_subsDone/subs.length*100):b.done?100:0;
-    el.innerHTML=`
-      <div class="tb-top">
-        <div class="tb-n">${b.isFocus?'⚡ ':isMIT?'★ ':''}${b.title}</div>
-        <div class="tb-tags">
-          ${b.recur&&b.recur!=='none'?'<span class="tb-ico" style="opacity:.5;font-size:9px">↻</span>':''}
-          <span class="tb-abc ${_abc}">${_abc}</span>
-          <span class="tb-cat ${b.cat}">${b.cat.toUpperCase()}</span>
-        </div>
-      </div>
-      ${proj||subs.length?`<div style="display:flex;align-items:center;gap:5px">
-        ${proj?`<span class="tb-proj">◆ ${proj.name}</span>`:''}
-        ${subs.length?`<div class="tb-subs">${subs.map(s=>`<div class="sub-dot ${s.done?'done':'todo'}"></div>`).join('')}</div>`:''}
-      </div>`:''}
-      <div class="tb-bot">
-        <span class="tb-time">${b.start}–${b.end}</span>
-        ${isRun?`<span class="tb-timer-sm" id="tts-${b.id}">▶</span>`:''}
-        <div class="tb-chk${b.done?' on':''}" data-bid="${b.id}" data-mid="${b._mid||''}" data-date="${b.date}" onclick="event.stopPropagation();chkBlock(this.dataset.bid,this.dataset.mid,this.dataset.date)">${b.done?'✓':''}</div>
-      </div>`;
+    // Build tblock using createElement (avoids all event bubbling issues)
+    var _top = document.createElement('div'); _top.className = 'tb-top';
+    var _tn = document.createElement('div'); _tn.className = 'tb-n';
+    _tn.textContent = (b.isFocus ? '⚡ ' : isMIT ? '★ ' : '') + b.title;
+    var _tags = document.createElement('div'); _tags.className = 'tb-tags';
+    if (b.recur && b.recur !== 'none') {
+      var _ri = document.createElement('span'); _ri.className = 'tb-ico'; _ri.style.cssText = 'opacity:.5;font-size:9px'; _ri.textContent = '↻'; _tags.appendChild(_ri);
+    }
+    var _abc2 = document.createElement('span'); _abc2.className = 'tb-abc ' + _abc; _abc2.textContent = _abc; _tags.appendChild(_abc2);
+    var _cat2 = document.createElement('span'); _cat2.className = 'tb-cat ' + b.cat; _cat2.textContent = b.cat.toUpperCase(); _tags.appendChild(_cat2);
+    _top.appendChild(_tn); _top.appendChild(_tags); el.appendChild(_top);
+
+    if (proj || subs.length) {
+      var _pm = document.createElement('div'); _pm.style.cssText = 'display:flex;align-items:center;gap:5px';
+      if (proj) { var _pj = document.createElement('span'); _pj.className = 'tb-proj'; _pj.textContent = '◆ ' + proj.name; _pm.appendChild(_pj); }
+      if (subs.length) { var _sb = document.createElement('div'); _sb.className = 'tb-subs'; subs.forEach(function(s){ var _sd = document.createElement('div'); _sd.className = 'sub-dot ' + (s.done?'done':'todo'); _sb.appendChild(_sd); }); _pm.appendChild(_sb); }
+      el.appendChild(_pm);
+    }
+
+    var _bot = document.createElement('div'); _bot.className = 'tb-bot';
+    var _tm = document.createElement('span'); _tm.className = 'tb-time'; _tm.textContent = b.start + '–' + b.end; _bot.appendChild(_tm);
+    if (isRun) { var _tr = document.createElement('span'); _tr.className = 'tb-timer-sm'; _tr.id = 'tts-' + b.id; _tr.textContent = '▶'; _bot.appendChild(_tr); }
+
+    // Checkbox — created as DOM element, no inline onclick
+    var _chk = document.createElement('div');
+    _chk.className = 'tb-chk' + (b.done ? ' on' : '');
+    _chk.textContent = b.done ? '✓' : '';
+    _chk.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      ev.preventDefault();
+      ev.cancelBubble = true;
+      chkBlock(b.id, b._mid || '', b.date);
+    });
+    _bot.appendChild(_chk);
+    el.appendChild(_bot);
 
     // Progress bar
-    const _pb=document.createElement('div');_pb.className='tb-progress';
-    const _pbf=document.createElement('div');_pbf.className='tb-progress-fill';
+    var _pb=document.createElement('div');_pb.className='tb-progress';
+    var _pbf=document.createElement('div');_pbf.className='tb-progress-fill';
     _pbf.style.width=_progPct+'%';_pb.appendChild(_pbf);el.appendChild(_pb);
-    // Add onclick directly on tb-chk for reliable desktop+mobile
-    var chkEl = el.querySelector('.tb-chk');
-    if (chkEl) {
-      chkEl.addEventListener('click', function(ev) {
-        ev.stopPropagation();
-        ev.preventDefault();
-        chkBlock(chkEl.dataset.bid, chkEl.dataset.mid, chkEl.dataset.date);
-      });
-    }
-    el.addEventListener('click', function(ev){
+
+    // Block click → open detail (only if not checkbox)
+    el.addEventListener('click', function(ev) {
+      if (ev.target.closest('.tb-chk')) return;
       ev.stopPropagation();
-      ev.cancelBubble = true;
-      if(ev.target.closest('.tb-chk')) return;
       openDetail(b.id, b._mid, b.date);
     });
 
@@ -5575,8 +5584,20 @@ function renderWeek(){
       const el=document.createElement('div');
       el.className=`w-tblock ${b.cat}${b.done?' done':''}`;
       el.style.cssText=`height:${hPx}px;`;
-      el.innerHTML=`<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px">${b.title.slice(0,20)}</span><span class="w-chk${b.done?' on':''}" onclick="event.stopPropagation();chkBlock('${b.id}','${b._mid||''}','${d}')" style="flex-shrink:0;width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;opacity:.7;cursor:pointer">${b.done?'✓':''}</span>`;
-      el.onclick = function(ev){ if(ev.target.classList.contains('w-chk')) return; ev.stopPropagation(); openDetail(b.id,b._mid,b.date); };
+      // Build week tblock with createElement
+      var _wspan = document.createElement('span');
+      _wspan.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px';
+      _wspan.textContent = b.title.slice(0,20);
+      var _wchk = document.createElement('span');
+      _wchk.className = 'w-chk' + (b.done ? ' on' : '');
+      _wchk.style.cssText = 'flex-shrink:0;width:24px;height:24px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer';
+      _wchk.textContent = b.done ? '✓' : '';
+      _wchk.addEventListener('click', function(ev) {
+        ev.stopPropagation(); ev.preventDefault(); ev.cancelBubble = true;
+        chkBlock(b.id, b._mid || '', d);
+      });
+      el.appendChild(_wspan); el.appendChild(_wchk);
+      el.onclick = function(ev){ if(ev.target.closest('.w-chk')) return; ev.stopPropagation(); openDetail(b.id,b._mid,b.date); };
       cols[di].appendChild(el);
     });
   });
