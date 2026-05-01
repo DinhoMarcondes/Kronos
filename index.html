@@ -787,7 +787,7 @@ html, body {
 }
 
 /* ─── TIME BLOCKS ────────────────────────────────────────────────── */
-.tblock { pointer-events: auto;
+.tblock { pointer-events: auto; min-height: 44px;
   position: absolute;
   left: 2px; right: 2px;
   border-radius: var(--radius-sm);
@@ -1017,8 +1017,10 @@ html, body {
 .tb-bot {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 2px;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 2px;
 }
 
 .tb-time {
@@ -1051,19 +1053,25 @@ html, body {
 .sub-dot.done { background: var(--pf); border-color: var(--pf); }
 
 .tb-chk {
-  width: 32px; height: 32px;
-  border-radius: 5px;
-  border: 1.5px solid var(--dim, #2e2e3e);
-  border-color: rgba(255,255,255,.12);
+  min-width: 36px;
+  min-height: 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,.2);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 14px;
   cursor: pointer;
-  transition: all .2s;
-  color: var(--muted);
+  color: rgba(255,255,255,.3);
+  background: rgba(255,255,255,.03);
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
 }
+.tb-chk:hover { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.07); }
+.tb-chk.on { color: #34d399; border-color: #34d399; background: rgba(52,211,153,.1); }
 .tb-chk.on { color: var(--text); border-color: var(--focus); background: rgba(99,102,241,.15); }
 
 .tb-chk.on {
