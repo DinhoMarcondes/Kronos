@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Kronos v1778283913 -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -5458,7 +5459,7 @@ function renderGrid(){
 
     const _subsDone=subs.filter(s=>s.done).length;
     const _progPct=subs.length?Math.round(_subsDone/subs.length*100):b.done?100:0;
-    // Build tblock using createElement (avoids all event bubbling issues)
+    // Build tblock using createElement — same pattern as renderWeek
     var _top = document.createElement('div'); _top.className = 'tb-top';
     var _tn = document.createElement('div'); _tn.className = 'tb-n';
     _tn.textContent = (b.isFocus ? '⚡ ' : isMIT ? '★ ' : '') + b.title;
@@ -5473,7 +5474,7 @@ function renderGrid(){
     if (proj || subs.length) {
       var _pm = document.createElement('div'); _pm.style.cssText = 'display:flex;align-items:center;gap:5px';
       if (proj) { var _pj = document.createElement('span'); _pj.className = 'tb-proj'; _pj.textContent = '◆ ' + proj.name; _pm.appendChild(_pj); }
-      if (subs.length) { var _sb = document.createElement('div'); _sb.className = 'tb-subs'; subs.forEach(function(s){ var _sd = document.createElement('div'); _sd.className = 'sub-dot ' + (s.done?'done':'todo'); _sb.appendChild(_sd); }); _pm.appendChild(_sb); }
+      if (subs.length) { var _sb = document.createElement('div'); _sb.className = 'tb-subs'; subs.forEach(function(ss){ var _sd = document.createElement('div'); _sd.className = 'sub-dot ' + (ss.done?'done':'todo'); _sb.appendChild(_sd); }); _pm.appendChild(_sb); }
       el.appendChild(_pm);
     }
 
@@ -5481,14 +5482,12 @@ function renderGrid(){
     var _tm = document.createElement('span'); _tm.className = 'tb-time'; _tm.textContent = b.start + '–' + b.end; _bot.appendChild(_tm);
     if (isRun) { var _tr = document.createElement('span'); _tr.className = 'tb-timer-sm'; _tr.id = 'tts-' + b.id; _tr.textContent = '▶'; _bot.appendChild(_tr); }
 
-    // Checkbox — created as DOM element, no inline onclick
+    // Checkbox — exact same pattern as renderWeek
     var _chk = document.createElement('div');
     _chk.className = 'tb-chk' + (b.done ? ' on' : '');
     _chk.textContent = b.done ? '✓' : '';
     _chk.addEventListener('click', function(ev) {
-      ev.stopPropagation();
-      ev.preventDefault();
-      ev.cancelBubble = true;
+      ev.stopPropagation(); ev.preventDefault(); ev.cancelBubble = true;
       chkBlock(b.id, b._mid || '', b.date);
     });
     _bot.appendChild(_chk);
@@ -5499,12 +5498,12 @@ function renderGrid(){
     var _pbf=document.createElement('div');_pbf.className='tb-progress-fill';
     _pbf.style.width=_progPct+'%';_pb.appendChild(_pbf);el.appendChild(_pb);
 
-    // Block click → open detail (only if not checkbox)
-    el.addEventListener('click', function(ev) {
+    // Block click — exact same pattern as renderWeek (onclick not addEventListener)
+    el.onclick = function(ev) {
       if (ev.target.closest('.tb-chk')) return;
       ev.stopPropagation();
       openDetail(b.id, b._mid, b.date);
-    });
+    };
 
     // Swipe-to-complete (touch)
     let swipeStartX=0,swipeStartY=0;
