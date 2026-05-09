@@ -5485,7 +5485,9 @@ function renderGrid(){
     // Checkbox — exact same pattern as renderWeek
     var _chk = document.createElement('div');
     _chk.className = 'tb-chk' + (b.done ? ' on' : '');
-    _chk.textContent = b.done ? '✓' : '';
+    _chk.textContent = b.done ? '✓' : '○';
+    _chk.title = 'Clique para concluir';
+    _chk.style.cursor = 'pointer';
     _chk.addEventListener('click', function(ev) {
       ev.stopPropagation(); ev.preventDefault(); ev.cancelBubble = true;
       chkBlock(b.id, b._mid || '', b.date);
