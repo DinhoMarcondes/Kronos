@@ -5494,19 +5494,19 @@ function renderGrid(){
     var _chk = document.createElement('div');
     _chk.className = 'tb-chk' + (b.done ? ' on' : '');
     _chk.textContent = b.done ? '✓' : '○';
-    _chk.title = 'Clique para concluir';
-    _chk.style.cursor = 'pointer';
-    _chk.setAttribute('data-bid', String(b.id));
-    _chk.setAttribute('data-mid', String(b._mid || ''));
-    _chk.setAttribute('data-date', String(b.date));
-    _chk.onclick = function(ev) {
-      ev.stopPropagation(); ev.preventDefault(); ev.cancelBubble = true;
-      var bid = this.getAttribute('data-bid');
-      var mid = this.getAttribute('data-mid');
-      var dt  = this.getAttribute('data-date');
-      chkBlock(bid, mid, dt);
-      return false;
-    };
+    _chk.title = 'Concluir';
+    _chk.style.cssText = 'position:relative;cursor:pointer;min-width:44px;min-height:44px;width:44px;height:44px;';
+    // Capture-phase overlay inside the checkbox
+    var _chkOverlay = document.createElement('div');
+    _chkOverlay.style.cssText = 'position:absolute;inset:-8px;z-index:999;cursor:pointer;';
+    (function(bid, mid, dt) {
+      _chkOverlay.onclick = function(ev) {
+        ev.stopPropagation(); ev.preventDefault(); ev.stopImmediatePropagation();
+        chkBlock(bid, mid, dt);
+        return false;
+      };
+    })(String(b.id), String(b._mid || ''), String(b.date));
+    _chk.appendChild(_chkOverlay);
     _bot.appendChild(_chk);
     el.appendChild(_bot);
 
