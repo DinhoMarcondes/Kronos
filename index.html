@@ -5488,10 +5488,17 @@ function renderGrid(){
     _chk.textContent = b.done ? '✓' : '○';
     _chk.title = 'Clique para concluir';
     _chk.style.cursor = 'pointer';
-    _chk.addEventListener('click', function(ev) {
+    _chk.setAttribute('data-bid', String(b.id));
+    _chk.setAttribute('data-mid', String(b._mid || ''));
+    _chk.setAttribute('data-date', String(b.date));
+    _chk.onclick = function(ev) {
       ev.stopPropagation(); ev.preventDefault(); ev.cancelBubble = true;
-      chkBlock(b.id, b._mid || '', b.date);
-    });
+      var bid = this.getAttribute('data-bid');
+      var mid = this.getAttribute('data-mid');
+      var dt  = this.getAttribute('data-date');
+      chkBlock(bid, mid, dt);
+      return false;
+    };
     _bot.appendChild(_chk);
     el.appendChild(_bot);
 
