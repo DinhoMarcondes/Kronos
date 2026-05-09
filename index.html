@@ -795,7 +795,7 @@ html, body {
   padding: 5px 9px 5px 10px;
   cursor: pointer;
   transition: transform .15s, box-shadow .15s;
-  overflow: hidden;
+  overflow: visible;
   z-index: 1;
   border-left: 2.5px solid;
   display: flex;
@@ -4673,6 +4673,11 @@ html, body {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Hide slot hint when a block exists in the column */
+.tg-col:has(.tblock) .slot-hint { display: none !important; pointer-events: none !important; }
+/* Ensure tblock and its children capture all clicks */
+.tblock, .tblock * { pointer-events: auto; }
 </style>
 
   <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiS3Jvbm9zIiwic2hvcnRfbmFtZSI6Iktyb25vcyIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTBmIiwidGhlbWVfY29sb3IiOiIjMGEwYTBmIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPVwiaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmdcIiB2aWV3Qm94PVwiMCAwIDEwMCAxMDBcIj48dGV4dCB5PVwiODBcIiBmb250LXNpemU9XCI4MFwiPks8L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
