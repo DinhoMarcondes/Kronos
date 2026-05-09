@@ -5489,29 +5489,25 @@ function renderGrid(){
     var _bot = document.createElement('div'); _bot.className = 'tb-bot';
     var _tm = document.createElement('span'); _tm.className = 'tb-time'; _tm.textContent = b.start + '–' + b.end; _bot.appendChild(_tm);
     if (isRun) { var _tr = document.createElement('span'); _tr.className = 'tb-timer-sm'; _tr.id = 'tts-' + b.id; _tr.textContent = '▶'; _bot.appendChild(_tr); }
+    el.appendChild(_bot);
 
-    // Checkbox — exact same pattern as renderWeek
-    var _chk = document.createElement('div');
-    _chk.className = 'tb-chk' + (b.done ? ' on' : '');
-    _chk.style.cssText = 'position:relative;cursor:pointer;min-width:44px;min-height:44px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;';
-    // Text label (pointer-events:none so overlay captures clicks)
-    var _chkTxt = document.createElement('span');
-    _chkTxt.textContent = b.done ? '✓' : '○';
-    _chkTxt.style.cssText = 'pointer-events:none;font-size:18px;position:relative;z-index:1;';
-    // Full-cover clickable overlay
-    var _chkOverlay = document.createElement('div');
-    _chkOverlay.style.cssText = 'position:absolute;inset:0;z-index:2;cursor:pointer;';
-    (function(bid, mid, dt) {
-      _chkOverlay.onclick = function(ev) {
+    // Checkbox as separate sibling button OUTSIDE tblock, inside tg-col
+    var _chkBtn = document.createElement('button');
+    _chkBtn.type = 'button';
+    _chkBtn.textContent = b.done ? '✓' : '○';
+    _chkBtn.style.cssText = 'position:absolute;right:2px;bottom:4px;width:36px;height:36px;'
+      + 'border-radius:8px;border:2px solid rgba(255,255,255,.25);'
+      + 'background:' + (b.done ? 'rgba(52,211,153,.15)' : 'rgba(0,0,0,.4)') + ';'
+      + 'color:' + (b.done ? '#34d399' : 'rgba(255,255,255,.5)') + ';'
+      + 'font-size:16px;cursor:pointer;z-index:100;'
+      + 'display:flex;align-items:center;justify-content:center;padding:0;';
+    (function(bid, mid, dt, btn) {
+      btn.onclick = function(ev) {
         ev.stopPropagation(); ev.preventDefault(); ev.stopImmediatePropagation();
         chkBlock(bid, mid, dt);
         return false;
       };
-    })(String(b.id), String(b._mid || ''), String(b.date));
-    _chk.appendChild(_chkTxt);
-    _chk.appendChild(_chkOverlay);
-    _bot.appendChild(_chk);
-    el.appendChild(_bot);
+    })(String(b.id), String(b._mid || ''), String(b.date), _chkBtn);
 
     // Progress bar
     var _pb=document.createElement('div');_pb.className='tb-progress';
@@ -5552,6 +5548,7 @@ function renderGrid(){
     },{passive:true});
 
     col.appendChild(el);
+    col.appendChild(_chkBtn);
 
     // Buffer gap indicator below this block if gap < 10min
     if(bufferSet.has(b.id)){
