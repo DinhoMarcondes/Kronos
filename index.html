@@ -5493,12 +5493,14 @@ function renderGrid(){
     // Checkbox — exact same pattern as renderWeek
     var _chk = document.createElement('div');
     _chk.className = 'tb-chk' + (b.done ? ' on' : '');
-    _chk.textContent = b.done ? '✓' : '○';
-    _chk.title = 'Concluir';
-    _chk.style.cssText = 'position:relative;cursor:pointer;min-width:44px;min-height:44px;width:44px;height:44px;';
-    // Capture-phase overlay inside the checkbox
+    _chk.style.cssText = 'position:relative;cursor:pointer;min-width:44px;min-height:44px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;';
+    // Text label (pointer-events:none so overlay captures clicks)
+    var _chkTxt = document.createElement('span');
+    _chkTxt.textContent = b.done ? '✓' : '○';
+    _chkTxt.style.cssText = 'pointer-events:none;font-size:18px;position:relative;z-index:1;';
+    // Full-cover clickable overlay
     var _chkOverlay = document.createElement('div');
-    _chkOverlay.style.cssText = 'position:absolute;inset:-8px;z-index:999;cursor:pointer;';
+    _chkOverlay.style.cssText = 'position:absolute;inset:0;z-index:2;cursor:pointer;';
     (function(bid, mid, dt) {
       _chkOverlay.onclick = function(ev) {
         ev.stopPropagation(); ev.preventDefault(); ev.stopImmediatePropagation();
@@ -5506,6 +5508,7 @@ function renderGrid(){
         return false;
       };
     })(String(b.id), String(b._mid || ''), String(b.date));
+    _chk.appendChild(_chkTxt);
     _chk.appendChild(_chkOverlay);
     _bot.appendChild(_chk);
     el.appendChild(_bot);
