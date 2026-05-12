@@ -10101,6 +10101,7 @@ var mlConfig = ld('kml_config', {
   access_token: '', refresh_token: '', token_expires: 0,
   user_id: '', user_nickname: '', last_sync: null, imported_ids: []
 });
+if (!mlConfig.imported_ids) mlConfig.imported_ids = [];
 var _mlBusy = false, _mlPeriod = '7d',
     _mlOpts = { orders: true, items: true }, _mlPrev = [];
 
@@ -10299,8 +10300,9 @@ function mlToggleOpt(k) { _mlOpts[k] = !_mlOpts[k]; renderML(); }
 
 
 function _mlPrevCard() {
-  var nw = _mlPrev.filter(function(o) { return !mlConfig.imported_ids.includes(String(o.id)); });
-  var dp = _mlPrev.filter(function(o) { return  mlConfig.imported_ids.includes(String(o.id)); });
+  var _ids = (mlConfig && Array.isArray(mlConfig.imported_ids)) ? mlConfig.imported_ids : [];
+  var nw = _mlPrev.filter(function(o) { return !_ids.includes(String(o.id)); });
+  var dp = _mlPrev.filter(function(o) { return  _ids.includes(String(o.id)); });
   var h = '<div style="margin:8px 16px 0">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
     + '<div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--ml-yellow);font-family:var(--font-mono)">' + _mlPrev.length + ' pedidos encontrados</div>'
@@ -10308,7 +10310,7 @@ function _mlPrevCard() {
     + '</div>'
     + '<div class="ml-orders-header"><span>Data</span><span>Produto</span><span>Valor</span><span>Status</span></div>';
   _mlPrev.slice(0,40).forEach(function(o) {
-    var dup = mlConfig.imported_ids.includes(String(o.id));
+    var dup = _ids.includes(String(o.id));
     var it  = o.order_items && o.order_items[0];
     var t   = (it && it.item && it.item.title) || 'Produto ML';
     var q   = (it && it.quantity) || 1;
@@ -11259,13 +11261,29 @@ function renderSuppliers() {
       if (skuCount) h += '<div style="font-size:10px;color:var(--muted);margin-top:4px">' + skuCount + ' SKU' + (skuCount > 1 ? 's' : '') + '</div>';
       h += '</div></div>';
       // Tags/notes
+      // Rating stars
+      if (s.rating) {
+        var stars = '';
+        for (var si = 1; si <= 5; si++) stars += si <= s.rating ? '★' : '☆';
+        h += '<div style="margin-top:6px;font-size:14px;color:var(--ops-gold);letter-spacing:2px">' + stars + '</div>';
+      }
+      // Niche tag
+      if (s.niche) h += '<div style="margin-top:4px"><span style="font-size:10px;padding:2px 8px;border-radius:20px;background:var(--s2);color:var(--muted);font-family:var(--font-mono)">' + s.niche + '</span></div>';
+      // Costs row
+      var costs = [];
+      if (s.lead_time) costs.push('⏱ ' + s.lead_time + 'd lead');
+      if (s.freight) costs.push('🚚 R$' + s.freight.toFixed(2));
+      if (s.tax_rate) costs.push('📋 ICMS ' + s.tax_rate + '%');
+      if (s.currency && s.currency !== 'BRL') costs.push('💱 ' + s.currency);
+      if (costs.length) h += '<div style="margin-top:6px;font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px">' + costs.join('') + '</div>';
       if (s.payment_terms) {
-        h += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)">';
+        h += '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)">';
         h += '💳 ' + s.payment_terms;
-        if (s.min_order) h += ' &nbsp;·&nbsp; 📦 Pedido mínimo: ' + s.min_order;
+        if (s.min_order) h += ' &nbsp;·&nbsp; 📦 ' + s.min_order;
         h += '</div>';
       }
-      if (s.notes) h += '<div style="margin-top:6px;font-size:11px;color:var(--muted);font-style:italic">' + s.notes + '</div>';
+      if (s.products) h += '<div style="margin-top:4px;font-size:11px;color:var(--muted)">📦 ' + s.products.slice(0,80) + (s.products.length>80?'...':'') + '</div>';
+      if (s.notes) h += '<div style="margin-top:4px;font-size:11px;color:var(--muted);font-style:italic">💬 ' + s.notes.slice(0,100) + '</div>';
       h += '</div>';
     });
   }
@@ -11279,82 +11297,114 @@ function supOpenForm(supId) {
   var ex = supId ? suppliers.find(function(s) { return s.id === supId; }) : null;
   var isEdit = !!ex;
 
+  var ratingHtml = '<div class="fl">Relacionamento (1-5)</div><div id="sf-rating-wrap" style="display:flex;gap:8px;margin-top:4px">';
+  for (var ri = 1; ri <= 5; ri++) {
+    ratingHtml += '<button type="button" id="sf-star-' + ri + '" onclick="supSetRating(' + ri + ')" style="width:40px;height:40px;border-radius:8px;border:1px solid var(--border);background:var(--s2);font-size:20px;cursor:pointer;transition:all .15s">☆</button>';
+  }
+  ratingHtml += '</div><div id="sf-rating-label" style="font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--font-mono)">Selecione uma pontuação</div>';
+
   mr.innerHTML = '<div class="overlay" onclick="cm(event)"><div class="sheet" onclick="event.stopPropagation()">'
     + '<div class="sh-drag"></div>'
     + '<div class="sh-title">' + (isEdit ? 'Editar Fornecedor' : 'Novo Fornecedor') + '</div>'
     + '<div class="sh-body" style="gap:10px">'
-    + '<div class="ops-grid2">'
-    + '<div><div class="fl">Nome *</div><input class="fi" id="sf-name" placeholder="Ex: Fornecedor ABC"></div>'
-    + '<div><div class="fl">Emoji</div><input class="fi" id="sf-emoji" placeholder="🏭" style="font-size:20px;text-align:center" maxlength="2"></div>'
+    + '<div class="ops-form-section">Identificação</div>'
+    + '<div class="ops-grid2"><div><div class="fl">Nome *</div><input class="fi" id="sf-name" placeholder="Ex: Fornecedor ABC"></div>'
+    + '<div><div class="fl">Emoji</div><input class="fi" id="sf-emoji" placeholder="🏭" style="font-size:20px;text-align:center" maxlength="2"></div></div>'
+    + '<div class="ops-grid2"><div><div class="fl">Categoria</div>'
+    + '<select class="fi" id="sf-cat" style="appearance:auto;cursor:pointer"><option value="nacional">Nacional</option><option value="importado">Importado</option><option value="dropshipping">Dropshipping</option><option value="outro">Outro</option></select></div>'
+    + '<div><div class="fl">Nicho / Segmento</div><input class="fi" id="sf-niche" placeholder="Ex: Cosméticos, Eletrônicos"></div></div>'
+    + '<div class="ops-form-section">Contato</div>'
+    + '<div class="ops-grid2"><div><div class="fl">WhatsApp / Telefone</div><input class="fi" id="sf-contact" placeholder="(11) 99999-9999" type="tel"></div>'
+    + '<div><div class="fl">Email</div><input class="fi" id="sf-email" placeholder="contato@fornecedor.com" type="email"></div></div>'
+    + '<div><div class="fl">Website / Catálogo</div><input class="fi" id="sf-website" placeholder="www.fornecedor.com.br"></div>'
+    + '<div class="ops-form-section">Logística</div>'
+    + '<div class="ops-grid2"><div><div class="fl">Lead Time (dias)</div><input class="fi" id="sf-lead" type="number" min="1" step="1" placeholder="15"></div>'
+    + '<div><div class="fl">Pedido mínimo</div><input class="fi" id="sf-minorder" placeholder="Ex: R$ 500 ou 100 un"></div></div>'
+    + '<div class="ops-grid2"><div><div class="fl">Frete estimado (R$)</div><input class="fi" id="sf-freight" type="number" min="0" step="0.01" placeholder="0,00"></div>'
+    + '<div><div class="fl">ICMS / Imposto interestadual (%)</div><input class="fi" id="sf-tax-rate" type="number" min="0" step="0.1" placeholder="4,0"></div></div>'
+    + '<div><div class="fl">Outros custos adicionais</div><input class="fi" id="sf-extra-costs" placeholder="Ex: Seguro R$20, Armazenagem R$50/mês"></div>'
+    + '<div class="ops-form-section">Financeiro</div>'
+    + '<div><div class="fl">Condições de pagamento</div><input class="fi" id="sf-payment" placeholder="Ex: 30/60 dias, PIX à vista 5% desc."></div>'
+    + '<div class="ops-grid2"><div><div class="fl">Desconto por volume (%)</div><input class="fi" id="sf-discount" type="number" min="0" step="0.1" placeholder="0"></div>'
+    + '<div><div class="fl">Moeda</div><select class="fi" id="sf-currency" style="appearance:auto;cursor:pointer"><option value="BRL">BRL — Real</option><option value="USD">USD — Dólar</option><option value="EUR">EUR — Euro</option><option value="CNY">CNY — Yuan</option></select></div></div>'
+    + '<div class="ops-form-section">Produtos</div>'
+    + '<div><div class="fl">Principais produtos / SKUs fornecidos</div>'
+    + '<textarea class="fi" id="sf-products" rows="3" placeholder="Ex: ML-001 Mouse Pad, ML-003 Cabo USB..." style="resize:vertical;font-family:var(--font-sans);font-size:13px"></textarea></div>'
+    + '<div class="ops-form-section">Relacionamento</div>'
+    + '<div>' + ratingHtml + '</div>'
+    + '<div><div class="fl">Notas / Observações</div>'
+    + '<textarea class="fi" id="sf-notes" rows="3" placeholder="Qualidade, pontualidade, problemas, pontos positivos..." style="resize:vertical;font-family:var(--font-sans);font-size:13px"></textarea></div>'
     + '</div>'
-    + '<div><div class="fl">Categoria</div>'
-    + '<select class="fi" id="sf-cat" style="appearance:auto;cursor:pointer">'
-    + '<option value="nacional">Nacional</option>'
-    + '<option value="importado">Importado</option>'
-    + '<option value="dropshipping">Dropshipping</option>'
-    + '<option value="outro">Outro</option>'
-    + '</select></div>'
-    + '<div class="ops-grid2">'
-    + '<div><div class="fl">Contato / WhatsApp</div><input class="fi" id="sf-contact" placeholder="(11) 99999-9999" type="tel"></div>'
-    + '<div><div class="fl">Email</div><input class="fi" id="sf-email" placeholder="contato@fornecedor.com" type="email"></div>'
-    + '</div>'
-    + '<div><div class="fl">Website</div><input class="fi" id="sf-website" placeholder="www.fornecedor.com.br"></div>'
-    + '<div class="ops-grid2">'
-    + '<div><div class="fl">Lead Time (dias)</div><input class="fi" id="sf-lead" type="number" min="1" placeholder="15"></div>'
-    + '<div><div class="fl">Pedido mínimo</div><input class="fi" id="sf-minorder" placeholder="Ex: R$ 500 ou 100 un"></div>'
-    + '</div>'
-    + '<div><div class="fl">Condições de pagamento</div><input class="fi" id="sf-payment" placeholder="Ex: 30/60 dias ou à vista 5%"></div>'
-    + '<div><div class="fl">Notas</div><textarea class="fi" id="sf-notes" rows="3" placeholder="Observações, produtos fornecidos, etc..." style="resize:vertical;font-family:var(--font-sans);font-size:13px"></textarea></div>'
-    + '</div>'
-    + '<div class="sh-footer">'
-    + '<button class="btnc" onclick="cm()">Cancelar</button>'
-    + '<button class="btnp" style="background:var(--ops-gold);color:#000" onclick="supSaveForm()">Salvar</button>'
-    + '</div>'
+    + '<div class="sh-footer"><button class="btnc" onclick="cm()">Cancelar</button>'
+    + '<button class="btnp" style="background:var(--ops-gold);color:#000" onclick="supSaveForm()">Salvar</button></div>'
     + (isEdit ? '<div style="padding:0 20px 8px"><button id="sf-del-btn" style="width:100%;padding:11px;border-radius:var(--radius);border:1px solid rgba(248,113,113,.22);background:rgba(248,113,113,.06);color:#f87171;font-family:var(--font-sans);font-size:13px;font-weight:600;cursor:pointer">Excluir Fornecedor</button></div>' : '')
     + '</div></div>';
 
-  // Set values via DOM
+  var set = function(id, val) { var el = document.getElementById(id); if(el && val != null) el.value = val; };
   if (ex) {
-    var set = function(id, val) { var el = document.getElementById(id); if(el && val != null) el.value = val; };
-    set('sf-name',    ex.name || '');
-    set('sf-emoji',   ex.emoji || '');
-    set('sf-cat',     ex.category || 'nacional');
-    set('sf-contact', ex.contact || '');
-    set('sf-email',   ex.email || '');
-    set('sf-website', ex.website || '');
-    set('sf-lead',    ex.lead_time || '');
-    set('sf-minorder',ex.min_order || '');
-    set('sf-payment', ex.payment_terms || '');
-    set('sf-notes',   ex.notes || '');
+    set('sf-name', ex.name||''); set('sf-emoji', ex.emoji||''); set('sf-cat', ex.category||'nacional');
+    set('sf-niche', ex.niche||''); set('sf-contact', ex.contact||''); set('sf-email', ex.email||'');
+    set('sf-website', ex.website||''); set('sf-lead', ex.lead_time||''); set('sf-minorder', ex.min_order||'');
+    set('sf-freight', ex.freight||''); set('sf-tax-rate', ex.tax_rate||''); set('sf-extra-costs', ex.extra_costs||'');
+    set('sf-payment', ex.payment_terms||''); set('sf-discount', ex.discount||''); set('sf-currency', ex.currency||'BRL');
+    set('sf-products', ex.products||''); set('sf-notes', ex.notes||'');
+    if (ex.rating) supSetRating(ex.rating);
     var delBtn = document.getElementById('sf-del-btn');
     if (delBtn) delBtn.onclick = function() { supDelete(ex.id); };
   }
-
-  window._supEditId = supId;
+  window._supEditId = supId || null;
+  window._supRating = (ex && ex.rating) ? ex.rating : 0;
 }
 
+function supSetRating(val) {
+  window._supRating = val;
+  var labels = ['','😞 Ruim','😐 Regular','🙂 Bom','😊 Muito bom','🤩 Excelente'];
+  for (var i = 1; i <= 5; i++) {
+    var btn = document.getElementById('sf-star-' + i);
+    if (btn) {
+      btn.textContent = i <= val ? '★' : '☆';
+      btn.style.background = i <= val ? 'rgba(251,191,36,.15)' : 'var(--s2)';
+      btn.style.borderColor = i <= val ? 'rgba(251,191,36,.4)' : 'var(--border)';
+      btn.style.color = i <= val ? 'var(--ops-gold)' : 'var(--text2)';
+    }
+  }
+  var lbl = document.getElementById('sf-rating-label');
+  if (lbl) lbl.textContent = labels[val] || '';
+}
+
+
 function supSaveForm() {
-  var name = (document.getElementById('sf-name')?.value || '').trim();
+  var g = function(id) { return document.getElementById(id); };
+  var name = (g('sf-name')?.value || '').trim();
   if (!name) { qopShowToast('Nome obrigatório'); return; }
 
   var data = {
     id:           window._supEditId || ('sup_' + Date.now()),
     name:         name,
-    emoji:        document.getElementById('sf-emoji')?.value || '🏭',
-    category:     document.getElementById('sf-cat')?.value || 'nacional',
-    contact:      document.getElementById('sf-contact')?.value || '',
-    email:        document.getElementById('sf-email')?.value || '',
-    website:      document.getElementById('sf-website')?.value || '',
-    lead_time:    parseInt(document.getElementById('sf-lead')?.value) || 0,
-    min_order:    document.getElementById('sf-minorder')?.value || '',
-    payment_terms:document.getElementById('sf-payment')?.value || '',
-    notes:        document.getElementById('sf-notes')?.value || '',
+    emoji:        g('sf-emoji')?.value || '🏭',
+    category:     g('sf-cat')?.value || 'nacional',
+    niche:        g('sf-niche')?.value || '',
+    contact:      g('sf-contact')?.value || '',
+    email:        g('sf-email')?.value || '',
+    website:      g('sf-website')?.value || '',
+    lead_time:    parseFloat(g('sf-lead')?.value) || 0,
+    min_order:    g('sf-minorder')?.value || '',
+    freight:      parseFloat(g('sf-freight')?.value) || 0,
+    tax_rate:     parseFloat(g('sf-tax-rate')?.value) || 0,
+    extra_costs:  g('sf-extra-costs')?.value || '',
+    payment_terms:g('sf-payment')?.value || '',
+    discount:     parseFloat(g('sf-discount')?.value) || 0,
+    currency:     g('sf-currency')?.value || 'BRL',
+    products:     g('sf-products')?.value || '',
+    rating:       window._supRating || 0,
+    notes:        g('sf-notes')?.value || '',
     updated_at:   new Date().toISOString(),
   };
 
-  if (window._supEditId) {
+  var isNew = !window._supEditId;
+  if (!isNew) {
     var idx = suppliers.findIndex(function(s) { return s.id === window._supEditId; });
-    if (idx >= 0) suppliers[idx] = data;
+    if (idx >= 0) suppliers[idx] = data; else suppliers.push(data);
   } else {
     suppliers.push(data);
   }
@@ -11362,8 +11412,9 @@ function supSaveForm() {
   supSave();
   cm();
   renderSuppliers();
-  qopShowToast(window._supEditId ? 'Fornecedor atualizado' : 'Fornecedor cadastrado');
+  qopShowToast(isNew ? 'Fornecedor cadastrado ✓' : 'Fornecedor atualizado ✓');
   window._supEditId = null;
+  window._supRating = 0;
 }
 
 function supDelete(supId) {
