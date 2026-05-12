@@ -4839,8 +4839,8 @@ html, body {
       <button class="ops-mod-tab" id="mod-tab-sup" onclick="switchOpsModule('sup')">Fornecedores</button>
     </div>
     <div class="ops-body" id="ops-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(100px + var(--safe-b))"></div>
-    <div class="log-body" id="log-body">
-    <div class="sup-body" id="sup-body" style="display:none;padding:8px 16px calc(100px + var(--safe-b));overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1"></div></div>
+    <div class="log-body" id="log-body"></div>
+  <div id="sup-body" style="display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 16px calc(100px + var(--safe-b))"></div>
   </div>
   </div>
 </div>
@@ -11447,7 +11447,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- OPS Overlay + Drawer + FAB -->
 <div class="ops-overlay" id="ops-overlay" onclick="opsCloseDrawer()"></div>
 <div class="ops-drawer" id="ops-drawer"></div>
-<button class="ops-fab" id="ops-fab" onclick="opsOpenAdd()">+</button>
+<button class="ops-fab" id="ops-fab" onclick="typeof _logModule!=='undefined'&&_logModule==='sup'?supOpenForm(null):opsOpenAdd()">+</button>
 
 <!-- QOP Quick Order Panel -->
 <div class="qop-overlay" id="qop-overlay" onclick="qopClose()"></div>
